@@ -34,7 +34,7 @@ class workbench_moderation_handler_filter_moderated_type extends views_handler_f
         $type = 'warning';
       }
 
-      drupal_set_message($message, $type, $repeat = FALSE);
+      backdrop_set_message($message, $type, $repeat = FALSE);
     }
 
     $operator = ($this->value ? "IN" : "NOT IN");

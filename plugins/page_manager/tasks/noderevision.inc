@@ -52,7 +52,7 @@ function workbench_moderation_noderevision_menu_alter(&$items, $task) {
   else {
     variable_set('workbench_moderation_noderevision_disabled', TRUE);
     if (!empty($GLOBALS['page_manager_enabling_workbench_noderevision'])) {
-      drupal_set_message(t('Page manager module is unable to enable Workbench Moderation Revision Node because some other module already has overridden with %callback.', array('%callback' => $callback)), 'warning');
+      backdrop_set_message(t('Page manager module is unable to enable Workbench Moderation Revision Node because some other module already has overridden with %callback.', array('%callback' => $callback)), 'warning');
     }
     return;
   }

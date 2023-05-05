@@ -35,7 +35,7 @@ function workbench_moderation_iib_entity_item($entity, $entity_type, $view_mode)
 
     // Add a moderation form.
     if ($revision_current && !$revision_published && _workbench_moderation_access('update', $entity) &&
-      $moderate_form = drupal_get_form('workbench_moderation_moderate_form', $entity, "node/{$entity->nid}/current-revision")) {
+      $moderate_form = backdrop_get_form('workbench_moderation_moderate_form', $entity, "node/{$entity->nid}/current-revision")) {
 
       $items['center'][] = array(
         '#prefix' => '<div class="workbench-moderate workbench-iib">',

@@ -39,7 +39,7 @@ class WorkbenchModerationExternalNodeUpdateTestCase extends WorkbenchModerationT
     // Enable a test module that will publish and unpublish nodes for us.
     parent::setUp(array_merge($modules, array('workbench_moderation_test')));
 
-    $this->drupalLogin($this->moderator_user);
+    $this->backdropLogin($this->moderator_user);
   }
 
   /**
@@ -52,7 +52,7 @@ class WorkbenchModerationExternalNodeUpdateTestCase extends WorkbenchModerationT
       'type' => $this->content_type,
       'status' => NODE_NOT_PUBLISHED,
     );
-    $this->node = $this->drupalCreateNode($settings);
+    $this->node = $this->backdropCreateNode($settings);
 
     // Assert that the node is initially in state draft and not published.
     $expected = array('state' => 'draft');
@@ -68,7 +68,7 @@ class WorkbenchModerationExternalNodeUpdateTestCase extends WorkbenchModerationT
 
     // Publish the node in an external module and check that the moderation
     // state changes accordingly.
-    $this->drupalGet('workbench_moderation_test/' . $this->node->nid . '/publish');
+    $this->backdropGet('workbench_moderation_test/' . $this->node->nid . '/publish');
     $this->refreshNode();
     $expected = array('state' => 'published');
     $this->assertModerationStatus($expected, 'is_current', 'The moderation state changed to "published" if the node is published externally.');
@@ -83,7 +83,7 @@ class WorkbenchModerationExternalNodeUpdateTestCase extends WorkbenchModerationT
 
     // Unpublish the node in an external module and check that the moderation
     // state changes accordingly.
-    $this->drupalGet('workbench_moderation_test/' . $this->node->nid . '/unpublish');
+    $this->backdropGet('workbench_moderation_test/' . $this->node->nid . '/unpublish');
     $this->refreshNode();
     $expected = array('state' => 'draft');
     $this->assertModerationStatus($expected, 'is_current', 'The moderation state changed to "draft" if the node is unpublished externally.');
@@ -101,7 +101,7 @@ class WorkbenchModerationExternalNodeUpdateTestCase extends WorkbenchModerationT
    * Resave the node in an external module.
    */
   public function resaveNode() {
-    $this->drupalGet('workbench_moderation_test/' . $this->node->nid);
+    $this->backdropGet('workbench_moderation_test/' . $this->node->nid);
     $this->refreshNode();
   }
 

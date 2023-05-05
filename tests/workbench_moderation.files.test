@@ -17,7 +17,7 @@ class WorkbenchModerationFilesTestCase extends FileFieldTestCase {
     module_enable(array('drafty', 'workbench_moderation'));
 
     // Create a new content type and enable moderation on it.
-    $type = $this->drupalCreateContentType();
+    $type = $this->backdropCreateContentType();
     $this->content_type = $type->name;
     variable_set('node_options_' . $this->content_type, array('revision', 'moderation'));
 
@@ -25,7 +25,7 @@ class WorkbenchModerationFilesTestCase extends FileFieldTestCase {
     $this->field_name = strtolower($this->randomName());
     $this->createFileField($this->field_name, $this->content_type);
 
-    $this->moderator_user = $this->drupalCreateUser(array(
+    $this->moderator_user = $this->backdropCreateUser(array(
       'access content',
       'access administration pages',
       'administer site configuration',
@@ -42,7 +42,7 @@ class WorkbenchModerationFilesTestCase extends FileFieldTestCase {
       'view moderation messages',
       'bypass workbench moderation',
     ));
-    $this->drupalLogin($this->moderator_user);
+    $this->backdropLogin($this->moderator_user);
   }
 
   public static function getInfo() {
@@ -58,26 +58,26 @@ class WorkbenchModerationFilesTestCase extends FileFieldTestCase {
     $file = $this->getTestFile('text');
     $edit = array(
       'title' => $this->randomName(),
-      'files[' . $this->field_name . '_' . LANGUAGE_NONE . '_0]' => drupal_realpath($file->uri),
+      'files[' . $this->field_name . '_' . LANGUAGE_NONE . '_0]' => backdrop_realpath($file->uri),
     );
-    $this->drupalPost("node/add/{$this->content_type}", $edit, t('Save'));
+    $this->backdropPost("node/add/{$this->content_type}", $edit, t('Save'));
 
     // Get the new node.
-    $node = $this->drupalGetNodeByTitle($edit['title']);
+    $node = $this->backdropGetNodeByTitle($edit['title']);
     $nid = $node->nid;
 
     // Publish the node via the moderation form.
     $moderate = array('state' => workbench_moderation_state_published());
-    $this->drupalPost("node/{$nid}/moderation", $moderate, t('Apply'));
+    $this->backdropPost("node/{$nid}/moderation", $moderate, t('Apply'));
 
     // Update the node; remove the first file and add a second file.
     $file = $this->getTestFile('text');
     $edit = array(
       'title' => $this->randomName(10) . '_second',
-      'files[' . $this->field_name . '_' . LANGUAGE_NONE . '_0]' => drupal_realpath($file->uri),
+      'files[' . $this->field_name . '_' . LANGUAGE_NONE . '_0]' => backdrop_realpath($file->uri),
     );
-    $this->drupalPost("node/$nid/edit", array(), t('Remove'));
-    $this->drupalPost(NULL, $edit, t('Save'));
+    $this->backdropPost("node/$nid/edit", array(), t('Remove'));
+    $this->backdropPost(NULL, $edit, t('Save'));
 
     // Load the published node.
     $published = node_load($nid, NULL, TRUE);

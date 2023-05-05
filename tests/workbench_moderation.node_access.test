@@ -30,7 +30,7 @@ class WorkbenchModerationNodeAccessTestCase extends WorkbenchModerationTestCase 
     $this->assertTrue($is_moderated, t('The content type is moderated.'));
 
     // Create an published node that has access records.
-    $node1 = $this->drupalCreateNode(array('type' => $this->content_type, 'title' => 'Published node', 'status' => 1));
+    $node1 = $this->backdropCreateNode(array('type' => $this->content_type, 'title' => 'Published node', 'status' => 1));
     $this->assertTrue(node_load($node1->nid), 'Test published node created.');
 
     // Assert grants were added to node_access on creation.
@@ -40,7 +40,7 @@ class WorkbenchModerationNodeAccessTestCase extends WorkbenchModerationTestCase 
     $this->assertEqual($records[0]->gid, 1, 'Grant with gid = 1 acquired for node without alteration.');
 
     // Create an unpublished node that has no access records.
-    $node2 = $this->drupalCreateNode(array('type' => $this->content_type, 'title' => 'Unpublished node', 'status' => 0));
+    $node2 = $this->backdropCreateNode(array('type' => $this->content_type, 'title' => 'Unpublished node', 'status' => 0));
     $this->assertTrue(node_load($node2->nid), 'Test unpublished node created.');
 
     // Check that no access records are present for the node, since it is not published.
@@ -48,11 +48,11 @@ class WorkbenchModerationNodeAccessTestCase extends WorkbenchModerationTestCase 
     $this->assertEqual(count($records), 0, 'Returned no records for unpublished node.');
 
     // Login for form testing.
-    $this->drupalLogin($this->moderator_user);
+    $this->backdropLogin($this->moderator_user);
 
     // Create a new draft of the published node.
     $edit = array('title' => 'Draft node revision1');
-    $this->drupalPost("node/{$node1->nid}/edit", $edit, t('Save'));
+    $this->backdropPost("node/{$node1->nid}/edit", $edit, t('Save'));
 
     // Assert grants still exist on node_access after draft created.
     $records = db_query('SELECT realm, gid FROM {node_access} WHERE nid = :nid', array(':nid' => $node1->nid))->fetchAll();
@@ -61,19 +61,19 @@ class WorkbenchModerationNodeAccessTestCase extends WorkbenchModerationTestCase 
     $this->assertEqual($records[0]->gid, 1, 'Grant with gid = 1 acquired for node without alteration.');
 
     // Create an published node that has access records.
-    $node3 = $this->drupalCreateNode(array('type' => $this->content_type, 'title' => 'Published node', 'status' => 1));
+    $node3 = $this->backdropCreateNode(array('type' => $this->content_type, 'title' => 'Published node', 'status' => 1));
     $this->assertTrue(node_load($node3->nid), 'Test published node created.');
 
     // Make sure the "Moderate" tab is accessible.
-    $this->drupalGet("node/{$node3->nid}/moderation");
+    $this->backdropGet("node/{$node3->nid}/moderation");
 
     // Attempt to change the moderation state without a token in the link.
-    $this->drupalGet("node/{$node3->nid}/moderation/{$node3->vid}/change-state/needs_review");
+    $this->backdropGet("node/{$node3->nid}/moderation/{$node3->vid}/change-state/needs_review");
     $this->assertResponse(403);
 
     // Run the same state change with a valid token, which should succeed.
-    $this->drupalGet("node/{$node3->nid}/moderation/{$node3->vid}/change-state/needs_review", array(
-      'query' => array('token' => $this->drupalGetToken("{$node3->nid}:{$node3->vid}:needs_review"))
+    $this->backdropGet("node/{$node3->nid}/moderation/{$node3->vid}/change-state/needs_review", array(
+      'query' => array('token' => $this->backdropGetToken("{$node3->nid}:{$node3->vid}:needs_review"))
     ));
 
     // Test that we have unpublished the node.
@@ -88,7 +88,7 @@ class WorkbenchModerationNodeAccessTestCase extends WorkbenchModerationTestCase 
 
     // Publish the node via the moderation form.
     $moderate = array('state' => workbench_moderation_state_published());
-    $this->drupalPost("node/{$node3->nid}/moderation", $moderate, t('Apply'));
+    $this->backdropPost("node/{$node3->nid}/moderation", $moderate, t('Apply'));
 
     // Ensure published status.
     $node = node_load($node3->nid, NULL, TRUE);
@@ -102,7 +102,7 @@ class WorkbenchModerationNodeAccessTestCase extends WorkbenchModerationTestCase 
 
     // Create a new draft.
     $edit = array('title' => $this->randomName(10) . '_revision1');
-    $this->drupalPost("node/{$node3->nid}/edit", $edit, t('Save'));
+    $this->backdropPost("node/{$node3->nid}/edit", $edit, t('Save'));
 
     // Check that grants are not changed.
     $records = db_query('SELECT realm, gid FROM {node_access} WHERE nid = :nid', array(':nid' => $node3->nid))->fetchAll();
@@ -126,8 +126,8 @@ class WorkbenchModerationNodeAccessTestCase extends WorkbenchModerationTestCase 
     $this->assertNotEqual($node->vid, $draft->vid, t('Draft revision is different from the published revision'));
 
     // Test the node for an anon user.
-    $this->drupalLogout();
-    $this->drupalGet('node/' . $node->nid);
+    $this->backdropLogout();
+    $this->backdropGet('node/' . $node->nid);
     $this->assertRaw('Published node', t('Page title is "Published node"'));
   }
 }

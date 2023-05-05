@@ -5,7 +5,7 @@
  * Permissions-related tests for workbench_moderation.module.
  */
 
-class WorkbenchModerationPermsTestCase extends DrupalWebTestCase {
+class WorkbenchModerationPermsTestCase extends BackdropWebTestCase {
   protected $content_type;
   protected $editor_user;
   protected $author_user;
@@ -15,19 +15,19 @@ class WorkbenchModerationPermsTestCase extends DrupalWebTestCase {
     parent::setUp($modules);
 
     // Create a new content type and enable moderation on it.
-    $type = $this->drupalCreateContentType();
+    $type = $this->backdropCreateContentType();
     $this->content_type = $type->name;
     variable_set('node_options_' . $this->content_type, array('revision', 'moderation'));
     // The editor should be able to view all unpublished content, even without authoring perms.
     $editor_permissions = array(
       0 => 'view all unpublished content',
     );
-    $this->editor_user = $this->drupalCreateUser($editor_permissions);
+    $this->editor_user = $this->backdropCreateUser($editor_permissions);
     // The Author will create the content.
     $author_permissions = array(
       0 => 'create ' . $type->name . ' content',
     );
-    $this->author_user = $this->drupalCreateUser($author_permissions);
+    $this->author_user = $this->backdropCreateUser($author_permissions);
   }
 }
 
@@ -43,7 +43,7 @@ class WorkbenchModerationViewUnpublishedTestCase extends WorkbenchModerationPerm
 
   function setUp($modules = array()) {
     parent::setUp($modules);
-    $this->drupalLogin($this->author_user);
+    $this->backdropLogin($this->author_user);
   }
 
   function testViewUnpublished() {
@@ -57,10 +57,10 @@ class WorkbenchModerationViewUnpublishedTestCase extends WorkbenchModerationPerm
       "{$body_name}[value]" => $this->randomString(128),
       "{$body_name}[format]" => filter_default_format(),
     );
-    $this->drupalPost("node/add/{$this->content_type}", $edit, t('Save'));
+    $this->backdropPost("node/add/{$this->content_type}", $edit, t('Save'));
 
     // Get the new node.
-    $node = $this->drupalGetNodeByTitle($edit['title']);
+    $node = $this->backdropGetNodeByTitle($edit['title']);
 
     $this->assertFalse($node->status, t('New node is unpublished'));
     $this->assertTrue(isset($node->workbench_moderation), t('Workbench moderation information is present on the node object'));
@@ -68,10 +68,10 @@ class WorkbenchModerationViewUnpublishedTestCase extends WorkbenchModerationPerm
     $this->assertEqual($node->uid, $this->author_user->uid, 'This node was authored by the author user.');
     $this->verbose(print_r($this->loggedInUser, TRUE));
 
-    $this->drupalLogin($this->editor_user);
+    $this->backdropLogin($this->editor_user);
     global $user;
     $user = user_load($this->loggedInUser->uid);
-    $this->drupalGet($node->path['source']);
+    $this->backdropGet($node->path['source']);
     $this->assertFalse($node->status, t('This node is unpublished.'));
     $this->assertResponse(200);
     $this->assertFalse($node->uid == $this->loggedInUser->uid, t('The current user is not the author of this node.'));

@@ -36,7 +36,7 @@ Workbench Moderation
 ----
 1.1  Concepts
 
-Workbench Moderation adds arbitrary moderation states to Drupal core's
+Workbench Moderation adds arbitrary moderation states to Backdrop core's
 "unpublished" and "published" node states, and affects the behavior of node
 revisions when nodes are published. Moderation states are tracked per-revision;
 rather than moderating nodes, Workbench Moderation moderates revisions.
@@ -44,7 +44,7 @@ rather than moderating nodes, Workbench Moderation moderates revisions.
 ----
 1.1.1  Arbitrary publishing states
 
-In Drupal, nodes may be either unpublished or published. In typical
+In Backdrop, nodes may be either unpublished or published. In typical
 configurations, unpublished nodes are accessible only to the user who created
 the node and to users with administrative privileges; published nodes are
 visible to any visitor. For simple workflows, this allows authors and editors to
@@ -57,7 +57,7 @@ be reviewed and approved before it gets published.
 ----
 1.1.2  Node revision behavior
 
-Workbench Moderation affects the behavior of Drupal’s node revisions. When
+Workbench Moderation affects the behavior of Backdrop’s node revisions. When
 revisions are enabled for a particular node type, editing a node creates a new
 revision. This lets users see how a node has changed over time and revert
 unwanted or accidental edits. Workbench Moderation maintains this revision
@@ -68,7 +68,7 @@ and each round of editing has been saved in a revision--there is one "current"
 revision. The current revision will always be the revision displayed in the node
 editing form when a user goes to edit a piece of content.
 
-In Drupal core, publishing a node makes the current revision visible to site
+In Backdrop core, publishing a node makes the current revision visible to site
 visitors (in a typical configuration). Once a node is published, its current
 revision is always the published version. Workbench Moderation changes this; it
 allows you to use an older revision of a node as the published version, while
@@ -78,13 +78,13 @@ continuing to edit a newer draft.
 @see workbench_moderation-wm_revisions.png
 
 Internally, Workbench Moderation does this by managing the version of the node
-stored in the {node} table. Drupal core looks in this table for the "current
-revision" of a node. Drupal core equates the "current revision" of a node with
+stored in the {node} table. Backdrop core looks in this table for the "current
+revision" of a node. Backdrop core equates the "current revision" of a node with
 both the editable revision and, if the node is published, the published
 revision. Workbench Moderation separates these two concepts; it stores the
 published revision of a node in the {node} table, but uses the latest revision
 in the {node_revision} table when the node is edited. Workbench Moderation's
-treatment of revisions is identical to that of Drupal core until a node is
+treatment of revisions is identical to that of Backdrop core until a node is
 published.
 
 ----
@@ -102,7 +102,7 @@ latest revision may be edited or moderated.
 ----
 2.  Installation
 
-Install the module and enable it according to Drupal standards.
+Install the module and enable it according to Backdrop standards.
 
 After installation, enable moderation on a content type by visiting its
 configuration page:
@@ -174,7 +174,7 @@ determine what permissions are missing. Visit:
 
     Admin > Configuration > Workbench > Workbench Moderation > Check Permissions
 
-Select a Drupal role, an intended moderation task, and the relevant node types,
+Select a Backdrop role, an intended moderation task, and the relevant node types,
 and Workbench Moderation will give you a report of possible missing permissions.
 Permissions configuration depends heavily on your configuration, so the report
 may flag permissions as missing even when a particular role has enough access to

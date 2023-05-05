@@ -76,7 +76,7 @@ function workbench_moderation_states_features_rebuild($module) {
     foreach ($defaults as $state) {
       workbench_moderation_state_save((object) $state);
     }
-    drupal_static_reset('workbench_moderation_states');
+    backdrop_static_reset('workbench_moderation_states');
   }
 }
 
@@ -162,6 +162,6 @@ function workbench_moderation_transitions_features_rebuild($module) {
     foreach ($defaults as $machine_name => $transition) {
       workbench_moderation_transition_save((object) $transition);
     }
-    drupal_static_reset('workbench_moderation_transitions');
+    backdrop_static_reset('workbench_moderation_transitions');
   }
 }

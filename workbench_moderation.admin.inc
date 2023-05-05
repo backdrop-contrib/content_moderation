@@ -98,7 +98,7 @@ function workbench_moderation_admin_states_form($form, &$form_state) {
 function theme_workbench_moderation_admin_states_form($variables) {
   $form = $variables['form'];
 
-  drupal_add_tabledrag('workbench-moderation-states', 'order', 'sibling', 'workbench-moderation-state-weight');
+  backdrop_add_tabledrag('workbench-moderation-states', 'order', 'sibling', 'workbench-moderation-state-weight');
 
   $header = array(
     t('Name'),
@@ -116,19 +116,19 @@ function theme_workbench_moderation_admin_states_form($variables) {
       'data' => array(),
       'class' => array('draggable'),
     );
-    $row['data']['label'] = drupal_render($element['label']);
-    $row['data']['name'] = drupal_render($element['name']) . drupal_render($element['machine_name']);
-    $row['data']['description'] = drupal_render($element['description']);
-    $row['data']['delete'] = drupal_render($element['delete']);
+    $row['data']['label'] = backdrop_render($element['label']);
+    $row['data']['name'] = backdrop_render($element['name']) . backdrop_render($element['machine_name']);
+    $row['data']['description'] = backdrop_render($element['description']);
+    $row['data']['delete'] = backdrop_render($element['delete']);
 
     $element['weight']['#attributes']['class'] = array('workbench-moderation-state-weight');
-    $row['data']['weight'] = drupal_render($element['weight']);
+    $row['data']['weight'] = backdrop_render($element['weight']);
 
     $rows[] = $row;
   }
 
   $output = theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array('id' => 'workbench-moderation-states')));
-  $output .= drupal_render_children($form);
+  $output .= backdrop_render_children($form);
 
   return $output;
 }
@@ -140,7 +140,7 @@ function workbench_moderation_admin_states_form_submit($form, &$form_state) {
   foreach ($form_state['values']['states'] as $key => $info) {
     if (!empty($info['delete'])) {
       workbench_moderation_state_delete($info['state']);
-      drupal_set_message(t('Moderation state %label (%name) has been deleted.', array('%label' => $info['label'], '%name' => $info['name'])));
+      backdrop_set_message(t('Moderation state %label (%name) has been deleted.', array('%label' => $info['label'], '%name' => $info['name'])));
     }
     elseif (!empty($info['name'])) {
       $state = (object) array(
@@ -157,11 +157,11 @@ function workbench_moderation_admin_states_form_submit($form, &$form_state) {
     }
   }
 
-  drupal_set_message(t('Your settings have been saved.'));
+  backdrop_set_message(t('Your settings have been saved.'));
 
   // Warn users that changes here may need require reconfiguring Views that use Workbench.
   $views_message = t('Depending on the changes you have made it may be necessary to <a href="@views">reconfigure Views</a> that leverage Workbench Moderation such as <a href="@workbench_moderation">workbench_moderation</a>', array('@views' => url('admin/structure/views'), '@workbench_moderation' => url('admin/structure/views/edit/workbench_moderation')));
-  drupal_set_message($views_message, $type = 'warning', $repeat = FALSE);
+  backdrop_set_message($views_message, $type = 'warning', $repeat = FALSE);
 }
 
 /**
@@ -251,17 +251,17 @@ function theme_workbench_moderation_admin_transitions_form($variables) {
   foreach (element_children($form['transitions']) as $key) {
     $element = &$form['transitions'][$key];
     $row = array('data' => array());
-    $row['data']['name'] = drupal_render($element['name']);
-    $row['data']['from'] = drupal_render($element['from_name']);
+    $row['data']['name'] = backdrop_render($element['name']);
+    $row['data']['from'] = backdrop_render($element['from_name']);
     $row['data'][] = '--&gt;';
-    $row['data']['to'] = drupal_render($element['to_name']);
-    $row['data']['delete'] = drupal_render($element['delete']);
+    $row['data']['to'] = backdrop_render($element['to_name']);
+    $row['data']['delete'] = backdrop_render($element['delete']);
     $rows[] = $row;
   }
   // @TODO: change this css call.
-  drupal_add_css(drupal_get_path('module', 'workbench_moderation') . '/css/workbench_moderation.css');
+  backdrop_add_css(backdrop_get_path('module', 'workbench_moderation') . '/css/workbench_moderation.css');
   $output = theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array('class' => array('width-auto'))));
-  $output .= drupal_render_children($form);
+  $output .= backdrop_render_children($form);
 
   return $output;
 }
@@ -293,7 +293,7 @@ function workbench_moderation_admin_transitions_form_submit($form, &$form_state)
   foreach ($form_state['values']['transitions'] as $transition) {
     if (!empty($transition['delete'])) {
       workbench_moderation_transition_delete($transition['transition']);
-      drupal_set_message(t('%from --&gt; %to has been deleted.', array('%from' => workbench_moderation_state_label($transition['transition']->from_name), '%to' => workbench_moderation_state_label($transition['transition']->to_name))));
+      backdrop_set_message(t('%from --&gt; %to has been deleted.', array('%from' => workbench_moderation_state_label($transition['transition']->from_name), '%to' => workbench_moderation_state_label($transition['transition']->to_name))));
     }
     elseif (!empty($transition['name']) && !empty($transition['from_name']) && !empty($transition['to_name'])) {
       $new_transition = (object) array(
@@ -302,7 +302,7 @@ function workbench_moderation_admin_transitions_form_submit($form, &$form_state)
         'to_name' => $transition['to_name'],
       );
       workbench_moderation_transition_save($new_transition);
-      drupal_set_message(t('%name: %from --&gt; %to has been created.',array('%name' => $new_transition->name, '%from' => workbench_moderation_state_label($new_transition->from_name), '%to' => workbench_moderation_state_label($new_transition->to_name))));
+      backdrop_set_message(t('%name: %from --&gt; %to has been created.',array('%name' => $new_transition->name, '%from' => workbench_moderation_state_label($new_transition->from_name), '%to' => workbench_moderation_state_label($new_transition->to_name))));
     }
   }
 }
@@ -319,7 +319,7 @@ function workbench_moderation_admin_check_role_form($form, &$form_state) {
   $roles = user_roles();
   $form['role'] = array(
     '#type' => 'select',
-    '#title' => t('Drupal role'),
+    '#title' => t('Backdrop role'),
     '#description' => t('Select a role to check.'),
     '#options' => $roles,
   );
@@ -336,7 +336,7 @@ function workbench_moderation_admin_check_role_form($form, &$form_state) {
     ),
   );
 
-  $types = drupal_map_assoc(workbench_moderation_moderate_node_types());
+  $types = backdrop_map_assoc(workbench_moderation_moderate_node_types());
   $all_types = node_type_get_types();
   foreach ($types as $type) {
     $types[$type] = $all_types[$type]->name;
@@ -354,7 +354,7 @@ function workbench_moderation_admin_check_role_form($form, &$form_state) {
   );
 
   if (empty($types)) {
-    drupal_set_message(t('Moderation is not enabled for any content types. Visit the <a href="@content_type_administration_page">content type administration page</a> to enable moderation for one or more types.', array('@content_type_administration_page' => url('admin/structure/types'))), 'warning');
+    backdrop_set_message(t('Moderation is not enabled for any content types. Visit the <a href="@content_type_administration_page">content type administration page</a> to enable moderation for one or more types.', array('@content_type_administration_page' => url('admin/structure/types'))), 'warning');
     $form['#disabled'] = TRUE;
   }
 
@@ -377,7 +377,7 @@ function workbench_moderation_admin_check_role_form_submit($form, &$form_state) 
   // Get a full list of this role's permissions.
   $actual_permissions = user_role_permissions(array_filter(array(
     $rid => TRUE,
-    DRUPAL_AUTHENTICATED_RID => ($rid != DRUPAL_ANONYMOUS_RID),
+    BACKDROP_AUTHENTICATED_ROLE => ($rid != BACKDROP_ANONYMOUS_ROLE),
   )));
 
   // The results of user_role_permissions() are in a nested array:
@@ -389,7 +389,7 @@ function workbench_moderation_admin_check_role_form_submit($form, &$form_state) 
 
   if (empty($recommended_permissions)) {
     // All of the recommended permissions were accounted for.
-    drupal_set_message(t('The @role role should be a qualified @moderation_task.', array(
+    backdrop_set_message(t('The @role role should be a qualified @moderation_task.', array(
       '@role' => $role->name,
       '@moderation_task' => $moderation_task,
     )), 'status');
@@ -398,7 +398,7 @@ function workbench_moderation_admin_check_role_form_submit($form, &$form_state) 
     // The specified role didn't have some of the recommended permissions. Print a list for the user.
     $all_permissions = module_invoke_all('permission');
     foreach ($recommended_permissions as $permission) {
-      drupal_set_message(t('The @role role may need the "!permission_label" permission in order to be a qualified @moderation_task of @types content.', array(
+      backdrop_set_message(t('The @role role may need the "!permission_label" permission in order to be a qualified @moderation_task of @types content.', array(
         '@role' => $role->name,
         '@moderation_task' => $moderation_task,
         '@types' => implode(t(' and '), array(implode(', ', array_slice($types, 0, -1)), end($types))), // @TODO: Context senstive translation bug
@@ -406,21 +406,21 @@ function workbench_moderation_admin_check_role_form_submit($form, &$form_state) 
       )), 'error');
     }
     // Provide links to node and moderation permissions.
-    drupal_set_message(t('View <a href="@node_permissions">node permissions</a> or <a href="@moderation_permissions">moderation permissions</a> for the @role role.', array(
+    backdrop_set_message(t('View <a href="@node_permissions">node permissions</a> or <a href="@moderation_permissions">moderation permissions</a> for the @role role.', array(
       '@node_permissions' => url('admin/people/permissions/' . $rid, array('fragment' => 'module-node')),
       '@moderation_permissions' => url('admin/people/permissions/' . $rid, array('fragment' => 'module-workbench_moderation')),
       '@role' => $role->name,
     )), 'error');
 
     // Note that we don't cover all configurations.
-    drupal_set_message(t('The @role role may be a qualified @moderation_task regardless of these notices if it has liberal overall node and moderation permissions, like "Administer content" and "Bypass moderation restrictions".', array(
+    backdrop_set_message(t('The @role role may be a qualified @moderation_task regardless of these notices if it has liberal overall node and moderation permissions, like "Administer content" and "Bypass moderation restrictions".', array(
       '@role' => $role->name,
       '@moderation_task' => $moderation_task,
     )), 'warning');
   }
 
   // Note that we don't cover all configurations.
-  drupal_set_message(t('You must check manually that this role has the appropriate transition permissions for your workflow. <a href="@moderation_permissions_link">View moderation permissions for this role.</a>', array('@moderation_permissions_link' => url('admin/people/permissions/' . $rid, array('fragment' => 'module-workbench_moderation')))), 'warning');
+  backdrop_set_message(t('You must check manually that this role has the appropriate transition permissions for your workflow. <a href="@moderation_permissions_link">View moderation permissions for this role.</a>', array('@moderation_permissions_link' => url('admin/people/permissions/' . $rid, array('fragment' => 'module-workbench_moderation')))), 'warning');
 
   // Repopulate the form with the submitted values.
   $form_state['rebuild'] = TRUE;
