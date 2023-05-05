@@ -6,4 +6,4 @@ type = module
 
 configure = admin/config/workbench/moderation
 
-dependencies[] = drafty
+;dependencies[] = drafty

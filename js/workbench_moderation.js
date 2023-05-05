@@ -7,12 +7,16 @@
 
 Backdrop.behaviors.workbenchModerationSettingsSummary = {
   attach: function(context) {
-    $('fieldset.node-form-options', context).backdropSetSummary(function (context) {
+    var $context = $(context);
+    $context.find('fieldset#edit-workbench-moderation').backdropSetSummary(function () {
       var vals = [];
 
-      $('input:checked', context).parent().each(function () {
-        vals.push(Backdrop.checkPlain($.trim($(this).text())));
-      });
+      if ($context.find('input[name="moderation_enabled"]:checked').length) {
+        vals.push(Backdrop.t('Moderation enabled'));
+      }
+      else {
+        vals.push(Backdrop.t('Moderation disabled'));
+      }
 
       if ($('select[name="workbench_moderation_state_new"]', context).val()) {
         vals.push(Backdrop.checkPlain($('select[name="workbench_moderation_state_new"] option:selected').text()));

@@ -1,48 +1,15 @@
-/**
- * @file
- * README file for Workbench Moderation.
- */
+# Workbench Moderation
 
-Workbench Moderation
 Arbitrary moderation states and unpublished drafts for nodes
 
-CONTENTS
---------
-
-1.  Introduction
-1.1  Concepts
-1.1.1  Arbitrary publishing states
-1.1.2  Node revision behavior
-1.1.3  Moderation states and revisions
-2.  Installation
-2.1  Requirements
-3.  Configuration
-3.1  Configuring states
-3.2  Configuring transitions
-3.3  Checking permissions
-3.3.1  Recommended permissions
-4.  Using the module
-5.  Troubleshooting
-6.  Developer notes
-6.1  Database schema
-6.2  Views integration
-7.  Feature roadmap
-
-----
-1.  Introduction
-
-Workbench Moderation
-
-----
-1.1  Concepts
+## Concepts
 
 Workbench Moderation adds arbitrary moderation states to Backdrop core's
 "unpublished" and "published" node states, and affects the behavior of node
 revisions when nodes are published. Moderation states are tracked per-revision;
 rather than moderating nodes, Workbench Moderation moderates revisions.
 
-----
-1.1.1  Arbitrary publishing states
+### 1 Arbitrary publishing states
 
 In Backdrop, nodes may be either unpublished or published. In typical
 configurations, unpublished nodes are accessible only to the user who created
@@ -54,8 +21,7 @@ moderation workflow--there are limited ways to keep track of nodes' status.
 Workbench Moderation provides moderation states, so that unpublished content may
 be reviewed and approved before it gets published.
 
-----
-1.1.2  Node revision behavior
+### 2 Node revision behavior
 
 Workbench Moderation affects the behavior of Backdrop’s node revisions. When
 revisions are enabled for a particular node type, editing a node creates a new
@@ -83,12 +49,11 @@ revision" of a node. Backdrop core equates the "current revision" of a node with
 both the editable revision and, if the node is published, the published
 revision. Workbench Moderation separates these two concepts; it stores the
 published revision of a node in the {node} table, but uses the latest revision
-in the {node_revision} table when the node is edited. Workbench Moderation's
+in the `{node_revision}` table when the node is edited. Workbench Moderation's
 treatment of revisions is identical to that of Backdrop core until a node is
 published.
 
-----
-1.1.3  Moderation states and revisions
+### 3 Moderation states and revisions
 
 Workbench Moderation maintains moderation states for revisions, rather than for
 nodes. Since each revision may reflect a unique version of a node, the state may
@@ -99,8 +64,7 @@ point where it is published.
 Revisions are a linear; revision history may not fork. This means that only the
 latest revision may be edited or moderated.
 
-----
-2.  Installation
+### Installation
 
 Install the module and enable it according to Backdrop standards.
 
@@ -115,8 +79,7 @@ In this tab under "Default Options", Workbench Moderation has added a checkbox,
 the boxes labeled "create new revision" (required) and "enable moderation of
 revisions", and then save the node type.
 
-----
-2.1  Requirements
+## Requirements
 
 Workbench Moderation may be used independently of other modules in the Workbench
 suite, including the "Workbench" module. Unlike the "Workbench" module,
@@ -129,15 +92,7 @@ them where your users can find them.
 Using the "Workbench" module with Workbench Moderation enables the display of
 moderation status information and a mini moderation form on node viewing pages.
 
-There is one dependency:
-
-  https://www.drupal.org/project/drafty
-
-The Drafty module is used for managing changes to the node's state and must also
-be installed.
-
-----
-3.  Configuration
+## Configuration
 
 Workbench Moderation's configuration section is located at:
 
@@ -147,8 +102,7 @@ This administration section provides tabs to configure states, transitions, and
 to check whether your permissions are configured to enable full use of
 moderation features.
 
-----
-3.1  Configuring states
+### 1 Configuring states
 
 Workbench Moderation provides three default moderation states: "Draft", "Needs
 Review", and "Published". The Draft and Published states are required. You can
@@ -156,16 +110,14 @@ edit, add, and remove states at:
 
     Admin > Configuration > Workbench > Workbench Moderation > States
 
-----
-3.2  Configuring transitions
+### 2 Configuring transitions
 
 Workbench Moderation also provides transitions between these three states. You
 can add and remove transitions at:
 
     Admin > Configuration > Workbench > Workbench Moderation > Transitions
 
-----
-3.3  Checking permissions
+### 3 Checking permissions
 
 In order to use moderation effectively, users need a complex set of permissions.
 If non-administrative users encounter access denied (403) errors or fail to see
@@ -180,8 +132,7 @@ Permissions configuration depends heavily on your configuration, so the report
 may flag permissions as missing even when a particular role has enough access to
 perform a particular moderation task.
 
-----
-3.3.1  Recommended permissions
+#### 3.1 Recommended permissions
 
 For reference, these are the permission sets recommended by the "Check
 Permissions" tab:
@@ -236,8 +187,7 @@ Permissions" tab:
         use workbench_moderation needs review tab
         unpublish live revision
 
-----
-4.  Using the module
+## Using the module
 
 Once the module is installed and moderation is enabled for one or more node
 types, users with permission may:
@@ -249,14 +199,12 @@ When the Workbench module is enabled, users with permission may also:
 * See messages about moderation state when visiting a moderated node.
 * Moderate content from the "View Draft" page.
 
-----
-5.  Troubleshooting
+## Troubleshooting
 
 * If users get access denied (403) errors when creating, editing, moderating, or
   reverting moderated content, the "Check Permissions" tab in Workbench
   Moderation's administration section can help diagnose what access is missing.
   See heading 3.3 in this README.
-
 * If you're building Views of moderation records, keep in mind that for a single
   node, there will be multiple revisions, and for each revision, there may be
   multiple moderation records. This means it will be very easy to end up with a
@@ -264,44 +212,56 @@ When the Workbench module is enabled, users with permission may also:
   "Workbench Moderation: Current" filter, or using Views' "Use grouping" option
   (under the "Advanced settings" heading on the view editing page).
 
-----
-6.  Developer notes
-
-Workbench Moderation does not have a mature API.
-
-----
-6.1  Database schema
+### 1 Database schema
 
 Workbench Moderation uses three tables to track content moderation states.
 
 * workbench_moderation_states
   Stores administrator-configured moderation states.
-
 * workbench_moderation_transitions
   Stores administrator-configured transitions between moderation states. These
   are simply pairs of moderation states: a "from" state and a "to" state.
-
 * workbench_moderation_node_history
   Stores individual moderation records related to each node revision. Each
   record stores the nid and vid of a node, the original moderation state and the
   new moderation state, the uid of the user who did the moderation, and a
   timestamp.
 
-----
-6.2  Views integration
+### 2 Views integration
 
 Workbench Moderation provides Views integration so that site builders may
 include moderation information in node and node revision views.
 
 * Filters, fields, sorts, and arguments are provided for moderation record data.
-
 * A relationship is provided from moderation records to the user who made the
   moderation change.
-
 * A "content type is moderated" filter is provided on for nodes to help in
   creating lists of only moderated content.
 
-----
-7.  Feature roadmap
+## Feature roadmap
 
 * Allow configuration of 'Draft' and 'Published' states.
+
+## License
+
+This project is GPL v2 software. See the LICENSE.txt file in this directory for
+complete text.
+
+## Maintainers
+
+* [herbdool](https://github.com/herbdool)
+* Seeking more maintainers.
+
+## Credit
+
+Ported to Backdrop by [herbdool](https://github.com/herbdool).
+
+Drupal Maintainers:
+
+* <https://www.drupal.org/u/agentrickard>
+* <https://www.drupal.org/u/becw>
+* <https://www.drupal.org/u/caroltron>
+* <https://www.drupal.org/u/das-peter>
+* <https://www.drupal.org/u/dave-reid>
+* <https://www.drupal.org/u/larowlan>
+* and more.

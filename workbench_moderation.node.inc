@@ -82,10 +82,10 @@ function workbench_moderation_node_view_revision($node) {
 /**
  * Display a node's moderation history.
  *
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
  *
- * @return
+ * @return array
  *   A themed table of data and links for node moderation actions.
  */
 function workbench_moderation_node_history_view($node) {

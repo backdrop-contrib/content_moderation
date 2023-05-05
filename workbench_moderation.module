@@ -24,6 +24,17 @@ function workbench_moderation_autoload_info() {
 }
 
 /**
+ * Implements hook_config_info().
+ */
+function workbench_moderation_config_info() {
+  $prefixes['workbench_moderation.settings'] = array(
+    'label' => t('Workbench Moderation settings'),
+    'group' => t('Configuration'),
+  );
+  return $prefixes;
+}
+
+/**
  * Implements hook_menu().
  */
 function workbench_moderation_menu() {
@@ -440,7 +451,7 @@ function workbench_moderation_permission() {
     // absolutely needed. For right now, this is hardcoded to OFF. To enable it,
     // Add this line to settings.php and then reset permissions.
     //   $conf['workbench_moderation_per_node_type'] = TRUE;
-    if (variable_get('workbench_moderation_per_node_type', FALSE)) {
+    if (settings_get('workbench_moderation_per_node_type', FALSE)) {
       foreach ($node_types as $node_type) {
         $permissions["moderate $node_type state from $from_state to $to_state"] = array(
           'title' => t('Moderate %node_type state from %from_state to %to_state', array('%node_type' => node_type_get_name($node_type), '%from_state' => workbench_moderation_state_label($from_state), '%to_state' => workbench_moderation_state_label($to_state))),
@@ -622,28 +633,6 @@ function workbench_moderation_help($path, $arg) {
 }
 
 /**
- * Implements hook_features_api().
- */
-function workbench_moderation_features_api() {
-  return array(
-    'workbench_moderation_states' => array(
-      'name' => t('Workbench States'),
-      'default_hook' => 'workbench_moderation_export_states',
-      'feature_source' => TRUE,
-      'default_file' => FEATURES_DEFAULTS_INCLUDED,
-      'file' => backdrop_get_path('module', 'workbench_moderation') .'/workbench_moderation.features.inc',
-    ),
-    'workbench_moderation_transitions' => array(
-      'name' => t('Workbench Transitions'),
-      'default_hook' => 'workbench_moderation_export_transitions',
-      'feature_source' => TRUE,
-      'default_file' => FEATURES_DEFAULTS_INCLUDED,
-      'file' => backdrop_get_path('module', 'workbench_moderation') .'/workbench_moderation.features.inc',
-    ),
-  );
-}
-
-/**
  * Implements hook_views_api().
  */
 function workbench_moderation_views_api() {
@@ -687,7 +676,7 @@ function workbench_moderation_entity_presave($entity, $entity_type) {
   }
 
   // Load our data onto the entity.
-  if (!$entity->is_new) {
+  if (!$entity->isNew()) {
     workbench_moderation_set_node_state($entity);
   }
 
@@ -891,45 +880,79 @@ function workbench_moderation_node_delete($node) {
  * Add moderation rules to node types.
  */
 function workbench_moderation_form_node_type_form_alter(&$form, $form_state) {
+  $node_type = $form['#node_type'];
   // Get a list of moderation states.
   $options = workbench_moderation_state_labels();
 
   // Disable the 'revision' checkbox when the 'moderation' checkbox is checked, so that moderation
   // can not be enabled unless revisions are enabled.
-  $form['workflow']['node_options']['revision']['#states'] = array(
-    'disabled' => array(':input[name="node_options[moderation]"]' => array('checked' => TRUE)),
+  $form['revision']['revision']['revision_enabled']['#states'] = array(
+    'disabled' => array(':input[name="moderation_enabled"]' => array('checked' => TRUE)),
+  );
+
+  $form['workbench_moderation'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Moderation'),
+    '#group' => 'additional_settings',
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#access' => user_access('administer workbench moderation'),
+    '#attached' => array(
+      'js' => array(backdrop_get_path('module', 'workbench_moderation') . '/js/workbench_moderation.js'),
+    ),
   );
 
   // Disable the 'moderation' checkbox when the 'revision' checkbox is not checked, so that
   // revisions can not be turned off without also turning off moderation.
-  $form['workflow']['node_options']['#options']['moderation'] = t('Enable moderation of revisions');
-  $form['workflow']['node_options']['moderation']['#description'] = t('Revisions must be enabled in order to use moderation.');
-  $form['workflow']['node_options']['moderation']['#states'] = array(
-    'disabled' => array(':input[name="node_options[revision]"]' => array('checked' => FALSE)),
+  $form['workbench_moderation']['moderation_enabled'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable moderation of revisions'),
+    '#default_value' => !isset($node_type->settings['moderation_enabled']) ? 0 : $node_type->settings['moderation_enabled'],
+    '#description' => t('Revisions must be enabled in order to use moderation.'),
+    '#states' => array(
+      'disabled' => array(
+        ':input[name="revision_enabled"]' => array(
+          'checked' => FALSE
+        )
+      ),
+    ),
   );
 
   // This select element is hidden when moderation is not enabled.
-  $form['workflow']['workbench_moderation_default_state'] = array(
+  $form['workbench_moderation']['workbench_moderation_default_state'] = array(
     '#title' => t('Default moderation state'),
     '#type' => 'select',
     '#options' => $options,
-    '#default_value' => variable_get('workbench_moderation_default_state_' . $form['#node_type']->type),
+    '#default_value' => !isset($node_type->settings['workbench_moderation_default_state']) ? NULL : $node_type->settings['workbench_moderation_default_state'],
     '#description' => t('Set the default moderation state for this content type. Users with additional moderation permissions will be able to set the moderation state when creating or editing nodes.'),
     '#states' => array(
-      'visible' => array(':input[name="node_options[moderation]"]' => array('checked' => TRUE)),
+      'visible' => array(':input[name="moderation_enabled"]' => array('checked' => TRUE)),
     ),
   );
   $form['#validate'][] = 'workbench_moderation_node_type_form_validate';
+  $form['#submit'][] = 'workbench_moderation_node_type_form_submit';
 }
 
 /**
  * Validate the content type form.
  */
-function workbench_moderation_node_type_form_validate($from, &$form_state) {
+function workbench_moderation_node_type_form_validate($form, &$form_state) {
   // Ensure that revisions are enabled if moderation is.
-  if ($form_state['values']['node_options']['moderation']) {
-    $form_state['values']['node_options']['status'] = 0;
-    $form_state['values']['node_options']['revision'] = 1;
+  if ($form_state['values']['moderation_enabled']) {
+    $form_state['values']['status_default'] = 0;
+    $form_state['values']['revision_enabled'] = 1;
+  }
+}
+
+/**
+ * Submit handler for node type form.
+ */
+function workbench_moderation_node_type_form_submit($form, &$form_state) {
+  if (isset($form_state['values']['moderation_enabled'])) {
+    $config = config('node.type.' . $form_state['values']['type']);
+    $config->set('settings.moderation_enabled', $form_state['values']['moderation_enabled']);
+    $config->set('settings.workbench_moderation_default_state', $form_state['values']['workbench_moderation_default_state']);
+    $config->save();
   }
 }
 
@@ -1105,11 +1128,7 @@ function workbench_moderation_state_none() {
  */
 function workbench_moderation_node_type_moderated($type) {
   // Is this content even in moderatation?
-  $options = variable_get("node_options_$type", array());
-  if (in_array('revision', $options) && in_array('moderation', $options)) {
-    return TRUE;
-  }
-  return FALSE;
+  return config_get('node.type.' . $type, 'settings.moderation_enabled');
 }
 
 /**
@@ -1176,7 +1195,7 @@ function workbench_moderation_state_allowed($account, $from_state, $to_state, $n
   }
 
   // Are we using complex node type rules for this transition?
-  if (variable_get('workbench_moderation_per_node_type', FALSE) && user_access("moderate $node_type state from $from_state to $to_state", $account)) {
+  if (settings_get('workbench_moderation_per_node_type', FALSE) && user_access("moderate $node_type state from $from_state to $to_state", $account)) {
     return TRUE;
   }
 
@@ -1200,7 +1219,7 @@ function workbench_moderation_node_data($node) {
   if (module_exists('path') && isset($node->nid)) {
     $path = array();
     $conditions = array('source' => 'node/' . $node->nid);
-    $langcode = entity_language('node', $node);
+    $langcode = $node->langcode;
     if ($langcode != LANGUAGE_NONE) {
       $conditions['language'] = $langcode;
     }
@@ -1216,7 +1235,7 @@ function workbench_moderation_node_data($node) {
       'pid' => NULL,
       'source' => 'node/' . $node->nid,
       'alias' => '',
-      'language' => isset($node->language) ? $node->language : LANGUAGE_NONE,
+      'language' => isset($node->langcode) ? $node->langcode : LANGUAGE_NONE,
     );
 
     $node->path = $path;
@@ -1659,18 +1678,18 @@ function workbench_moderation_transition_delete($transition) {
  * This function is used in permissions checks, so it should never return
  * disallowed transitions.
  *
- * @param $current_state
+ * @param string $current_state
  *   The current moderation state.
- * @param $account
+ * @param User $account
  *   The user object being checked.
- * @param $node
+ * @param Node $node
  *   The node object being acted upon.
  *
  * @return
  *   If the user may moderate a change, return an array of possible state
  *   changes. Otherwise, return FALSE.
  */
-function workbench_moderation_states_next($current_state, $account = NULL, $node) {
+function workbench_moderation_states_next($current_state, $account, $node) {
   $states = FALSE;
 
   // Make sure we have a current state.
@@ -2326,8 +2345,8 @@ function workbench_moderation_entity_info() {
   $entity_info['workbench_moderation_transition'] = array(
     'label' => t('Workbench Moderation Transition'),
     'label callback' => 'workbench_moderation_transition_label_callback',
-    'entity class' => 'Entity',
-    'controller class' => 'EntityAPIController',
+    'entity class' => 'Entity', //'EntityPlusCmiEntity',
+    'controller class' => 'EntityPlusController', //'EntityPlusCmiController',
     'access callback' => 'workbench_moderation_transition_access',
     'base table' => 'workbench_moderation_transitions',
     'fieldable' => FALSE,
