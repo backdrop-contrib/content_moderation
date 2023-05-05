@@ -9,6 +9,21 @@
  */
 
 /**
+ * Implements hook_autoload_info().
+ */
+function workbench_moderation_autoload_info() {
+  return array(
+    'workbench_moderation_handler_field_history_link' => 'includes/workbench_moderation_handler_field_history_link.inc',
+    'workbench_moderation_handler_field_links' => 'includes/workbench_moderation_handler_field_links.inc',
+    'workbench_moderation_handler_field_state' => 'includes/workbench_moderation_handler_field_state.inc',
+    'workbench_moderation_handler_filter_state' => 'includes/workbench_moderation_handler_filter_state.inc',
+    'workbench_moderation_handler_filter_moderated_type' => 'includes/workbench_moderation_handler_filter_moderated_type.inc',
+    'workbench_moderation_handler_filter_user_can_moderate' => 'includes/workbench_moderation_handler_filter_user_can_moderate.inc',
+    //'WorkbenchModerationMigrateDestinationHandler' => 'workbench_moderation.migrate.inc',
+  );
+}
+
+/**
  * Implements hook_menu().
  */
 function workbench_moderation_menu() {
