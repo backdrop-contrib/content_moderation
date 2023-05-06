@@ -4,7 +4,7 @@
  * @file
  * Tests moderation states when nodes are (un)published by other modules.
  */
-class WorkbenchModerationExternalNodeUpdateTestCase extends WorkbenchModerationTestCase {
+class ContentModerationExternalNodeUpdateTestCase extends ContentModerationTestCase {
 
   /**
    * {@inheritdoc}
@@ -28,7 +28,7 @@ class WorkbenchModerationExternalNodeUpdateTestCase extends WorkbenchModerationT
     return array(
       'name' => 'External node update',
       'description' => 'Test if nodes are correctly moderated when updated by third party modules.',
-      'group' => 'Workbench Moderation',
+      'group' => 'Content Moderation',
     );
   }
 
@@ -37,7 +37,7 @@ class WorkbenchModerationExternalNodeUpdateTestCase extends WorkbenchModerationT
    */
   public function setUp($modules = array()) {
     // Enable a test module that will publish and unpublish nodes for us.
-    parent::setUp(array_merge($modules, array('workbench_moderation_test')));
+    parent::setUp(array_merge($modules, array('content_moderation_test')));
 
     $this->backdropLogin($this->moderator_user);
   }
@@ -68,7 +68,7 @@ class WorkbenchModerationExternalNodeUpdateTestCase extends WorkbenchModerationT
 
     // Publish the node in an external module and check that the moderation
     // state changes accordingly.
-    $this->backdropGet('workbench_moderation_test/' . $this->node->nid . '/publish');
+    $this->backdropGet('content_moderation_test/' . $this->node->nid . '/publish');
     $this->refreshNode();
     $expected = array('state' => 'published');
     $this->assertModerationStatus($expected, 'is_current', 'The moderation state changed to "published" if the node is published externally.');
@@ -83,7 +83,7 @@ class WorkbenchModerationExternalNodeUpdateTestCase extends WorkbenchModerationT
 
     // Unpublish the node in an external module and check that the moderation
     // state changes accordingly.
-    $this->backdropGet('workbench_moderation_test/' . $this->node->nid . '/unpublish');
+    $this->backdropGet('content_moderation_test/' . $this->node->nid . '/unpublish');
     $this->refreshNode();
     $expected = array('state' => 'draft');
     $this->assertModerationStatus($expected, 'is_current', 'The moderation state changed to "draft" if the node is unpublished externally.');
@@ -101,7 +101,7 @@ class WorkbenchModerationExternalNodeUpdateTestCase extends WorkbenchModerationT
    * Resave the node in an external module.
    */
   public function resaveNode() {
-    $this->backdropGet('workbench_moderation_test/' . $this->node->nid);
+    $this->backdropGet('content_moderation_test/' . $this->node->nid);
     $this->refreshNode();
   }
 
@@ -175,10 +175,10 @@ class WorkbenchModerationExternalNodeUpdateTestCase extends WorkbenchModerationT
    *   Which status to return. Can be either 'current' or 'published'.
    *
    * @return array
-   *   The node's record(s) from the {workbench_moderation_node_history} table.
+   *   The node's record(s) from the {content_moderation_node_history} table.
    */
   protected function getModerationRecord($status = 'is_current') {
-    $data = db_select('workbench_moderation_node_history', 'nh')
+    $data = db_select('content_moderation_node_history', 'nh')
       ->fields('nh', array('from_state', 'state', 'published', 'is_current'))
       ->condition('nid', $this->node->nid, '=')
       ->condition($status, 1)

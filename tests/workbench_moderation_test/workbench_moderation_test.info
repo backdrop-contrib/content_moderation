@@ -1,5 +1,0 @@
-name = Workbench Moderation Test
-description = Test module for Workbench Moderation.
-package = Workbench
-core = 7.x
-hidden = TRUE

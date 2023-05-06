@@ -1,0 +1,5 @@
+name = Content Moderation Node Access Test
+description = Node Access test module for Content Moderation.
+package = Content
+core = 7.x
+hidden = TRUE

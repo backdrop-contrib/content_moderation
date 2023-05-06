@@ -1,0 +1,105 @@
+<?php
+
+/**
+ * @file
+ * Tests for using file fields with content_moderation.module.
+ */
+
+class ContentModerationFilesTestCase extends FileFieldTestCase {
+  protected $content_type;
+  protected $moderator_user;
+
+  protected $field_name;
+
+  function setUp() {
+    parent::setUp();
+
+    module_enable(array('drafty', 'content_moderation'));
+
+    // Create a new content type and enable moderation on it.
+    $type = $this->backdropCreateContentType();
+    $this->content_type = $type->name;
+    variable_set('node_options_' . $this->content_type, array('revision', 'moderation'));
+
+    // Add a file field to the new content type.
+    $this->field_name = strtolower($this->randomName());
+    $this->createFileField($this->field_name, $this->content_type);
+
+    $this->moderator_user = $this->backdropCreateUser(array(
+      'access content',
+      'access administration pages',
+      'administer site configuration',
+      'administer users',
+      'administer permissions',
+      'administer content types',
+      'administer nodes',
+      'bypass node access',
+
+      'view revisions',
+      'revert revisions',
+      "edit any {$this->content_type} content",
+      'view moderation history',
+      'view moderation messages',
+      'bypass content moderation',
+    ));
+    $this->backdropLogin($this->moderator_user);
+  }
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Content Moderation file attachments',
+      'description' => 'Test moderation on nodes with with file attachments.',
+      'group' => 'Content Moderation',
+    );
+  }
+
+  function testModeratedFileField() {
+    // Create a new node with an uploaded file.
+    $file = $this->getTestFile('text');
+    $edit = array(
+      'title' => $this->randomName(),
+      'files[' . $this->field_name . '_' . LANGUAGE_NONE . '_0]' => backdrop_realpath($file->uri),
+    );
+    $this->backdropPost("node/add/{$this->content_type}", $edit, t('Save'));
+
+    // Get the new node.
+    $node = $this->backdropGetNodeByTitle($edit['title']);
+    $nid = $node->nid;
+
+    // Publish the node via the moderation form.
+    $moderate = array('state' => content_moderation_state_published());
+    $this->backdropPost("node/{$nid}/moderation", $moderate, t('Apply'));
+
+    // Update the node; remove the first file and add a second file.
+    $file = $this->getTestFile('text');
+    $edit = array(
+      'title' => $this->randomName(10) . '_second',
+      'files[' . $this->field_name . '_' . LANGUAGE_NONE . '_0]' => backdrop_realpath($file->uri),
+    );
+    $this->backdropPost("node/$nid/edit", array(), t('Remove'));
+    $this->backdropPost(NULL, $edit, t('Save'));
+
+    // Load the published node.
+    $published = node_load($nid, NULL, TRUE);
+
+    // Check for a published revision.
+    $this->assertTrue(isset($published->content_moderation['published']), t('Content moderation has published revision'));
+
+    // Load the draft revision.
+    $draft = clone $published;
+    $draft = content_moderation_node_current_load($draft);
+
+    // Check that the draft revision is different from the published revision.
+    $this->assertNotEqual($published->vid, $draft->vid, t('Content moderation loads second revision'));
+
+    // Check that the original file is present on the published revision.
+    $published_file = (object) $published->{$this->field_name}[LANGUAGE_NONE][0];
+    $this->assertFileExists($published_file, t('File is present on published revision'));
+
+    // Check that the second file is present on the draft revision.
+    $draft_file = (object) $draft->{$this->field_name}[LANGUAGE_NONE][0];
+    $this->assertFileExists($draft_file, t('File is present on draft revision'));
+    $this->assertNotEqual($published_file->uri, $draft_file->uri, t('File on published revision is different from file on draft revision'));
+  }
+
+}

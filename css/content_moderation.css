@@ -1,0 +1,21 @@
+.current-revision td {
+  background-color: #faafbe;
+}
+
+.published-revision td {
+  background-color: #aaffaa;
+}
+
+.width-auto {
+  width: auto;
+}
+
+form.content-moderation-moderate-form,
+form.content-moderation-moderate-form div,
+form.content-moderation-moderate-form label {
+  display: inline;
+}
+
+#content-moderation-admin-transitions-form table {
+  min-width: 380px;
+}

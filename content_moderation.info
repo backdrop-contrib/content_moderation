@@ -1,0 +1,7 @@
+name = Content Moderation
+description = Provides content moderation services
+package = Moderation
+backdrop = 1.x
+type = module
+
+configure = admin/config/content-moderation/moderation

@@ -1,0 +1,6 @@
+files[] = tests/external_node_update.test
+files[] = tests/content_moderation.test
+files[] = tests/content_moderation.files.test
+files[] = tests/content_moderation.perms.test
+files[] = tests/content_moderation.node_access.test
+files[] = tests/content_moderation.transition.test

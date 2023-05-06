@@ -1,0 +1,488 @@
+{
+  "_config_name": "views.view.content_moderation",
+  "name": "content_moderation",
+  "description": "Lists content by moderation state.",
+  "tag": "Content Moderation",
+  "disabled": false,
+  "base_table": "node_revision",
+  "human_name": "Content Moderation: Content",
+  "core": 1,
+  "display": {
+    "default": {
+      "display_title": "Defaults",
+      "display_plugin": "default",
+      "display_options": {
+        "query": {
+          "type": "views_query",
+          "options": {
+            "query_comment": false
+          }
+        },
+        "title": "Content I've edited",
+        "use_more_always": true,
+        "use_more_text": "view all",
+        "access": {
+          "type": "perm",
+          "perm": "use content_moderation my drafts tab"
+        },
+        "cache": {
+          "type": "none"
+        },
+        "exposed_form": {
+          "type": "basic"
+        },
+        "pager": {
+          "type": "full",
+          "options": {
+            "items_per_page": "25",
+            "offset": "0",
+            "id": "0",
+            "expose": {
+              "items_per_page": true,
+              "items_per_page_options": "10, 25, 50, 100, 200"
+            }
+          }
+        },
+        "style_plugin": "table",
+        "style_options": {
+          "columns": {
+            "nid": "nid",
+            "log": "log",
+            "nothing": "nothing",
+            "state": "state",
+            "moderation_actions": "moderation_actions",
+            "title": "title",
+            "type": "type",
+            "name": "name",
+            "changed": "changed"
+          },
+          "default": "changed",
+          "info": {
+            "nid": {
+              "sortable": 0,
+              "default_sort_order": "asc",
+              "align": "",
+              "separator": ""
+            },
+            "log": {
+              "align": "",
+              "separator": ""
+            },
+            "nothing": {
+              "align": "",
+              "separator": ""
+            },
+            "state": {
+              "sortable": 1,
+              "default_sort_order": "asc",
+              "align": "",
+              "separator": ""
+            },
+            "moderation_actions": {
+              "align": "",
+              "separator": ""
+            },
+            "title": {
+              "sortable": 1,
+              "default_sort_order": "asc",
+              "align": "",
+              "separator": ""
+            },
+            "type": {
+              "sortable": 1,
+              "default_sort_order": "asc",
+              "align": "",
+              "separator": ""
+            },
+            "name": {
+              "sortable": 1,
+              "default_sort_order": "asc",
+              "align": "",
+              "separator": ""
+            },
+            "changed": {
+              "sortable": 1,
+              "default_sort_order": "desc",
+              "align": "",
+              "separator": ""
+            }
+          },
+          "order": "desc"
+        },
+        "empty": {
+          "area": {
+            "id": "area",
+            "table": "views",
+            "field": "area",
+            "content": "You haven't created or edited any content.",
+            "format": "1"
+          }
+        },
+        "relationships": {
+          "nid": {
+            "id": "nid",
+            "table": "content_moderation_node_history",
+            "field": "nid",
+            "required": true
+          },
+          "uid": {
+            "id": "uid",
+            "table": "node_revision",
+            "field": "uid"
+          }
+        },
+        "fields": {
+          "nid": {
+            "id": "nid",
+            "table": "node",
+            "field": "nid",
+            "relationship": "nid",
+            "exclude": true,
+            "link_to_node": true
+          },
+          "log": {
+            "id": "log",
+            "table": "node_revision",
+            "field": "log",
+            "exclude": true
+          },
+          "content_moderation_history_link": {
+            "id": "content_moderation_history_link",
+            "table": "node",
+            "field": "content_moderation_history_link",
+            "exclude": true,
+            "hide_alter_empty": false
+          },
+          "state": {
+            "id": "state",
+            "table": "content_moderation_node_history",
+            "field": "state",
+            "ui_name": "Moderation state",
+            "label": "Moderation state",
+            "alter": {
+              "alter_text": true,
+              "text": "<div>[state]</div><div>[content_moderation_history_link]</div>"
+            },
+            "hide_alter_empty": false,
+            "machine_name": 0
+          },
+          "moderation_actions": {
+            "id": "moderation_actions",
+            "table": "content_moderation_node_history",
+            "field": "moderation_actions",
+            "label": "Set moderation state"
+          },
+          "title": {
+            "id": "title",
+            "table": "node",
+            "field": "title",
+            "relationship": "nid",
+            "alter": {
+              "word_boundary": false,
+              "ellipsis": false
+            }
+          },
+          "type": {
+            "id": "type",
+            "table": "node",
+            "field": "type",
+            "relationship": "nid",
+            "alter": {
+              "word_boundary": false,
+              "ellipsis": false
+            }
+          },
+          "name": {
+            "id": "name",
+            "table": "users",
+            "field": "name",
+            "relationship": "uid",
+            "label": "Revised by"
+          },
+          "changed": {
+            "id": "changed",
+            "table": "node",
+            "field": "changed",
+            "relationship": "nid",
+            "label": "Last updated",
+            "alter": {
+              "word_boundary": false,
+              "ellipsis": false
+            },
+            "date_format": "time ago"
+          }
+        },
+        "sorts": {
+          "changed": {
+            "id": "changed",
+            "table": "node",
+            "field": "changed",
+            "relationship": "nid",
+            "order": "DESC"
+          }
+        },
+        "filters": {
+          "uid_current": {
+            "id": "uid_current",
+            "table": "users",
+            "field": "uid_current",
+            "relationship": "uid",
+            "value": "1"
+          },
+          "title": {
+            "id": "title",
+            "table": "node",
+            "field": "title",
+            "relationship": "nid",
+            "operator": "contains",
+            "exposed": true,
+            "expose": {
+              "operator_id": "title_op",
+              "label": "Title",
+              "operator": "title_op",
+              "identifier": "title",
+              "remember": true
+            }
+          },
+          "type": {
+            "id": "type",
+            "table": "node",
+            "field": "type",
+            "relationship": "nid",
+            "exposed": true,
+            "expose": {
+              "operator_id": "type_op",
+              "label": "Type",
+              "operator": "type_op",
+              "identifier": "type",
+              "remember": true
+            }
+          },
+          "state": {
+            "id": "state",
+            "table": "content_moderation_node_history",
+            "field": "state",
+            "value": {
+              "all": "all",
+              "draft": "draft",
+              "needs_review": "needs_review",
+              "published": "published"
+            },
+            "exposed": true,
+            "expose": {
+              "operator_id": "state_op",
+              "label": "State",
+              "operator": "state_op",
+              "identifier": "state",
+              "remember": true,
+              "reduce": true
+            }
+          },
+          "is_current": {
+            "id": "is_current",
+            "table": "content_moderation_node_history",
+            "field": "is_current"
+          }
+        }
+      }
+    },
+    "needs_review_page": {
+      "display_title": "Needs review page",
+      "display_plugin": "page",
+      "display_options": {
+        "query": {
+          "type": "views_query",
+          "options": []
+        },
+        "defaults": {
+          "title": false,
+          "hide_admin_links": false,
+          "access": false,
+          "empty": false,
+          "filter_groups": false,
+          "filters": false
+        },
+        "title": "Needs review",
+        "access": {
+          "type": "perm",
+          "perm": "use content_moderation needs review tab"
+        },
+        "empty": {
+          "area": {
+            "id": "area",
+            "table": "views",
+            "field": "area",
+            "content": "This list displays content in the \"Needs review\" state that you can moderate. Currently there is no such content.",
+            "format": "plain_text"
+          }
+        },
+        "filters": {
+          "is_current": {
+            "id": "is_current",
+            "table": "content_moderation_node_history",
+            "field": "is_current",
+            "value": "1"
+          },
+          "state": {
+            "id": "state",
+            "table": "content_moderation_node_history",
+            "field": "state",
+            "value": {
+              "needs_review": "needs_review"
+            },
+            "expose": {
+              "label": "Content Moderation: State",
+              "operator": "state_op",
+              "identifier": "state"
+            }
+          },
+          "title": {
+            "id": "title",
+            "table": "node",
+            "field": "title",
+            "relationship": "nid",
+            "operator": "contains",
+            "exposed": true,
+            "expose": {
+              "operator_id": "title_op",
+              "label": "Title",
+              "operator": "title_op",
+              "identifier": "title",
+              "remember": true
+            }
+          },
+          "type": {
+            "id": "type",
+            "table": "node",
+            "field": "type",
+            "relationship": "nid",
+            "exposed": true,
+            "expose": {
+              "operator_id": "type_op",
+              "label": "Type",
+              "operator": "type_op",
+              "identifier": "type",
+              "remember": true
+            }
+          }
+        },
+        "path": "admin/content/needs-review",
+        "menu": {
+          "type": "tab",
+          "title": "Needs review",
+          "weight": "99"
+        }
+      }
+    },
+    "drafts_page": {
+      "display_title": "Drafts page",
+      "display_plugin": "page",
+      "display_options": {
+        "query": {
+          "type": "views_query",
+          "options": []
+        },
+        "defaults": {
+          "title": false,
+          "hide_admin_links": false,
+          "empty": false,
+          "filter_groups": false,
+          "filters": false
+        },
+        "title": "My drafts",
+        "empty": {
+          "area": {
+            "id": "area",
+            "table": "views",
+            "field": "area",
+            "content": "This list displays content you have created that is not published. Currently there is no such content.",
+            "format": "plain_text"
+          }
+        },
+        "filters": {
+          "uid_current": {
+            "id": "uid_current",
+            "table": "users",
+            "field": "uid_current",
+            "relationship": "uid",
+            "value": "1",
+            "group": 1
+          },
+          "is_current": {
+            "id": "is_current",
+            "table": "content_moderation_node_history",
+            "field": "is_current",
+            "value": "1",
+            "group": 1
+          },
+          "state_1": {
+            "id": "state_1",
+            "table": "content_moderation_node_history",
+            "field": "state",
+            "operator": "not in",
+            "value": {
+              "published": "published"
+            },
+            "group": 1
+          },
+          "title": {
+            "id": "title",
+            "table": "node",
+            "field": "title",
+            "relationship": "nid",
+            "operator": "contains",
+            "group": 1,
+            "exposed": true,
+            "expose": {
+              "operator_id": "title_op",
+              "label": "Title",
+              "operator": "title_op",
+              "identifier": "title",
+              "remember": true
+            }
+          },
+          "type": {
+            "id": "type",
+            "table": "node",
+            "field": "type",
+            "relationship": "nid",
+            "group": 1,
+            "exposed": true,
+            "expose": {
+              "operator_id": "type_op",
+              "label": "Type",
+              "operator": "type_op",
+              "identifier": "type",
+              "remember": true
+            }
+          },
+          "state": {
+            "id": "state",
+            "table": "content_moderation_node_history",
+            "field": "state",
+            "value": {
+              "draft": "draft",
+              "needs_review": "needs_review"
+            },
+            "group": 1,
+            "exposed": true,
+            "expose": {
+              "operator_id": "state_op",
+              "label": "State",
+              "operator": "state_op",
+              "identifier": "state",
+              "remember": true,
+              "reduce": true
+            }
+          }
+        },
+        "path": "admin/content/drafts",
+        "menu": {
+          "type": "tab",
+          "title": "My drafts",
+          "weight": "98"
+        }
+      }
+    }
+  }
+}

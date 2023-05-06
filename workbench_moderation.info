@@ -1,9 +1,0 @@
-name = Workbench Moderation
-description = Provides content moderation services
-package = Workbench
-backdrop = 1.x
-type = module
-
-configure = admin/config/workbench/moderation
-
-;dependencies[] = drafty
