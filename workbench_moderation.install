@@ -9,8 +9,6 @@
  * Implements hook_install().
  */
 function workbench_moderation_install() {
-  // Create tables.
-  _workbench_moderation_insert_values();
   db_update('system')
     ->fields(array('weight' => 5))
     ->condition('name', 'workbench_moderation')
@@ -21,67 +19,6 @@ function workbench_moderation_install() {
  * Implements hook_schema().
  */
 function workbench_moderation_schema() {
-  $schema['workbench_moderation_states'] = array(
-    'description' => 'Defines all possible states',
-    'fields' => array(
-      'name' => array(
-        'description' => 'The machine name of the moderation state.',
-        'type' => 'varchar',
-        'length' => '255',
-        'not null' => TRUE,
-      ),
-      'label' => array(
-        'description' => 'A label for the moderation state.',
-        'type' => 'varchar',
-        'length' => '255',
-        'not null' => FALSE,
-      ),
-      'description' => array(
-        'description' => 'A description of the moderation state.',
-        'type' => 'varchar',
-        'length' => '255',
-        'not null' => FALSE,
-      ),
-      'weight' => array(
-        'description' => 'Sort weight for the moderation state.',
-        'type' => 'int',
-        'default' => 0,
-      ),
-    ),
-    'primary key' => array('name'),
-  );
-
-  $schema['workbench_moderation_transitions'] = array(
-    'description' => 'Defines the valid transitions for states',
-    'fields' => array(
-      'id' => array(
-        'type' => 'serial',
-        'not null' => TRUE,
-        'unsigned' => TRUE,
-        'description' => 'Primary Key: Unique workbench_moderation transition identifier.',
-      ),
-      'name' => array(
-        'description' => 'The machine-readable name of this workbench_moderation transition.',
-        'type' => 'varchar',
-        'length' => 255,
-        'initial' => 'from_name',
-      ),
-      'from_name' => array(
-        'description' => 'The starting moderation state.',
-        'type' => 'varchar',
-        'length' => '255',
-        'not null' => FALSE,
-      ),
-      'to_name' => array(
-        'description' => 'The ending moderation state.',
-        'type' => 'varchar',
-        'length' => '255',
-        'not null' => FALSE,
-      ),
-    ),
-    'primary key' => array('id'),
-  );
-
   $schema['workbench_moderation_node_history'] = array(
     'fields' => array(
       'hid' => array(
@@ -160,106 +97,85 @@ function workbench_moderation_schema() {
 }
 
 /**
- * Adds default data for workflow states
- */
-function _workbench_moderation_insert_values() {
-  // Default states.
-  $states = array(
-    array(
-      'name' => 'draft',
-      'label' => 'Draft',
-      'description' => 'Work in progress',
-      'weight' => -99,
-    ),
-    array(
-      'name' => 'needs_review',
-      'label' => 'Needs Review',
-      'description' => 'Ready for moderation',
-      'weight' => 0,
-    ),
-    array(
-      'name' => 'published',
-      'label' => 'Published',
-      'description' => 'Make this version live',
-      'weight' => 99,
-    ),
-  );
-
-  // Save default states to the database.
-  $query = db_insert('workbench_moderation_states')
-    ->fields(array('name', 'label', 'description', 'weight'));
-
-  foreach ($states as $state) {
-    $query->values($state);
-  }
-
-  $query->execute();
-
-  // Default transitions.
-  $transitions = array(
-    array(
-      'name' => 'Submit for Review',
-      'from_name' => 'draft',
-      'to_name' => 'needs_review',
-    ),
-    array(
-      'name' => 'Reject',
-      'from_name' => 'needs_review',
-      'to_name' => 'draft',
-    ),
-    array(
-      'name' => 'Publish',
-      'from_name' => 'needs_review',
-      'to_name' => 'published',
-    ),
-  );
-
-  // Save default transitions to the database.
-  $query = db_insert('workbench_moderation_transitions')
-    ->fields(array('name', 'from_name', 'to_name'));
-
-  foreach ($transitions as $transition) {
-    $query->values($transition);
-  }
-
-  $query->execute();
-}
-
-/**
  * Implements hook_update_last_removed().
  */
 function workbench_moderation_update_last_removed() {
   return 7300;
 }
 
-// @todo
-// convert workbench_moderation_default_state
-// 'workbench_moderation_default_state_' . $form['#node_type']->type
-// to per node.
-
 /**
  * Convert variables to config.
  */
 function workbench_moderation_update_1000() {
+  $config = config('workbench_moderation.settings');
+  $config->set('nodedraft_disabled', update_variable_get('workbench_moderation_nodedraft_disabled', TRUE));
+  $config->set('show_revision_navigation', update_variable_get('workbench_moderation_show_revision_navigation', TRUE));
+  $config->save();
 
   // Delete workbench_moderation variables.
   update_variable_del('workbench_moderation_nodedraft_disabled');
-  update_variable_del('workbench_moderation_per_node_type');
   update_variable_del('workbench_moderation_show_revision_navigation');
 
   // Get all node types. Loop through them and delete workbench-related variables.
   $types = node_type_get_types();
   foreach ($types as $type_object) {
     $type = $type_object->type;
-    update_variable_del("workbench_moderation_default_state_$type");
+    if (update_variable_get("workbench_moderation_default_state_$type", NULL)) {
+      config_set('node.type.' . $type, 'settings.workbench_moderation_default_state', update_variable_get("workbench_moderation_default_state_$type", NULL));
+      update_variable_del("workbench_moderation_default_state_$type");
+    }
 
     // Get node options that might hold a moderation flag.
-    $node_options = variable_get("node_options_$type", array());
+    $node_options = update_variable_get("node_options_$type", array());
     foreach ($node_options as $key => $option) {
       if ($option === 'moderation') {
+        config_set('node.type.' . $type, 'settings.moderation_enabled', TRUE);
         unset($node_options[$key]);
       }
     }
-    variable_set("node_options_$type", $node_options);
+  }
+}
+
+/**
+ * Move workbench_moderation_states configuration from table to config files.
+ */
+function workbench_moderation_update_1001() {
+  if (db_table_exists('workbench_moderation_states')) {
+    $states = (array) db_select('workbench_moderation_states', 'wms')
+    ->fields('wms')
+    ->execute()
+    ->fetchAllAssoc('name');
+
+    $config = config('workbench_moderation.states');
+    if ($config->isNew()) {
+      $config->setData($states);
+      $config->save();
+    }
+    db_drop_table('workbench_moderation_states');
+  }
+}
+
+/**
+ * Move workbench_moderation_transitions configuration from table to config files.
+ */
+function workbench_moderation_update_1002() {
+  if (db_table_exists('workbench_moderation_transitions')) {
+    $transitions = (array) db_select('workbench_moderation_transitions', 'wmt')
+    ->fields('wmt')
+    ->execute()
+    ->fetchAllAssoc('id');
+
+    $config = config('workbench_moderation.transitions');
+    if ($config->isNew()) {
+      foreach($transitions as $t) {
+        $machine_name = system_transliterate_machine_name(strtolower($t->name));
+        $config->set($machine_name . '.name', $machine_name);
+        $config->set($machine_name . '.label', $t->name);
+        $config->set($machine_name . '.from_name', $t->from_name);
+        $config->set($machine_name . '.to_name', $t->to_name);
+      }
+    }
+    $config->save();
+    db_drop_table('workbench_moderation_transitions');
   }
 }

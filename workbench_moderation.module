@@ -1399,11 +1399,8 @@ function workbench_moderation_node_is_current($node) {
 function workbench_moderation_states() {
   $states = &backdrop_static(__FUNCTION__);
   if (!isset($states)) {
-    $states = db_select('workbench_moderation_states', 'states')
-      ->fields('states', array('name', 'label', 'description', 'weight'))
-      ->orderBy('states.weight', 'ASC')
-      ->execute()
-      ->fetchAllAssoc('name');
+    $config = config('workbench_moderation.states');
+    $states = $config->getData();
   }
 
   return $states;
@@ -1422,10 +1419,10 @@ function workbench_moderation_state_labels() {
     $labels = array();
     foreach (workbench_moderation_states() as $machine_name => $state) {
       if (module_exists('i18n_string')) {
-        $labels[$machine_name] = i18n_string_translate(array('workbench_moderation', 'moderation_state', $machine_name, 'label'), $state->label);
+        $labels[$machine_name] = i18n_string_translate(array('workbench_moderation', 'moderation_state', $machine_name, 'label'), $state['label']);
       }
       else {
-        $labels[$machine_name] = $state->label;
+        $labels[$machine_name] = $state['label'];
       }
     }
   }
@@ -1494,6 +1491,22 @@ function workbench_moderation_state_load($machine_name) {
 }
 
 /**
+ * Get information about a single moderation state.
+ *
+ * @param type $machine_name
+ *   The machine name of the state.
+ * @return
+ *   An object of information about the state or FALSE if the state does not exist.
+ */
+function workbench_moderation_transition_load($machine_name) {
+  $transitions = workbench_moderation_transitions();
+  if (isset($transitions[$machine_name])) {
+    return $transitions[$machine_name];
+  }
+  return FALSE;
+}
+
+/**
  * Save a new or existing moderation state.
  *
  * Moderation state names must be unique, so saving a state object with a
@@ -1501,29 +1514,22 @@ function workbench_moderation_state_load($machine_name) {
  *
  * Invokes hook_workbench_moderation_state_save().
  *
- * @param $state
- *   An object with name, description, and weight properties.
- *
- * @return int
- *   Returns MergeQuery::STATUS_INSERT or MergeQuery::STATUS_UPDATE depending
- *   on if this INSERT'ing a new transation or UPDATE'ing an existing one.
+ * @param array $state
+ *   An array with name, description, and weight properties.
  *
  * @see hook_workbench_moderation_state_save()
  */
 function workbench_moderation_state_save($state) {
-  $status = db_merge('workbench_moderation_states')
-    ->key(array('name' => $state->name))
-    ->fields((array) $state)
-    ->execute();
+  $config = config('workbench_moderation.states');
+  $config->set($state['name'], $state);
+  $config->save();
 
   foreach (module_implements('workbench_moderation_state_save') as $module) {
     // Don't call this function! That would lead to infinite recursion.
     if ($module !== 'workbench_moderation') {
-      module_invoke($module, 'workbench_moderation_state_save', $state, $status);
+      module_invoke($module, 'workbench_moderation_state_save', $state);
     }
   }
-
-  return $status;
 }
 
 /**
@@ -1534,8 +1540,8 @@ function workbench_moderation_state_save($state) {
  *
  * Invokes hook_workbench_moderation_state_delete().
  *
- * @param $state
- *   An object with at least a name property.
+ * @param array $state
+ *   An array with at least a name property.
  *
  * @see hook_workbench_moderation_state_delete().
  * @see hook_workbench_moderation_transition_delete().
@@ -1548,19 +1554,18 @@ function workbench_moderation_state_delete($state) {
     }
   }
 
-  db_delete('workbench_moderation_states')
-    ->condition('name', $state->name)
-    ->execute();
+  $config_states = config('workbench_moderation.states');
+  $config_states->clear($state['name'], $state);
+  $config_states->save();
 
-  // Delete related transitions, too.
-  $query = db_select('workbench_moderation_transitions', 't')
-    ->fields('t')
-    ->condition(db_or()->condition('from_name', $state->name)->condition('to_name', $state->name))
-    ->execute();
-
-  while ($transition = $query->fetchObject()) {
-    workbench_moderation_transition_delete($transition);
+  $config_transitions = config('workbench_moderation.transitions');
+  $transitions = $config_transitions->getData();
+  foreach($transitions as $transition) {
+    if ($transition['from_name'] == $state['name'] || $transition['to_name'] == $state['name']) {
+      workbench_moderation_transition_delete($transition);
+    }
   }
+
 }
 
 /**
@@ -1574,17 +1579,8 @@ function workbench_moderation_state_delete($state) {
 function workbench_moderation_transitions() {
   $transitions = &backdrop_static(__FUNCTION__);
   if (!isset($transitions)) {
-    $query = db_select('workbench_moderation_transitions', 't')
-      ->fields('t', array('id', 'name', 'from_name', 'to_name'));
-
-    $alias_from = $query->addJoin('INNER', 'workbench_moderation_states', NULL, 't.from_name = %alias.name');
-    $alias_to = $query->addJoin('INNER', 'workbench_moderation_states', NULL, 't.to_name = %alias.name');
-
-    $query
-      ->orderBy("$alias_from.weight", 'ASC')
-      ->orderBy("$alias_to.weight", 'ASC');
-
-    $transitions = $query->execute()->fetchAll();
+    $config = config('workbench_moderation.transitions');
+    $transitions = $config->getData();
   }
   return $transitions;
 }
@@ -1594,34 +1590,24 @@ function workbench_moderation_transitions() {
  *
  * Invokes hook_workbench_moderation_transition_save().
  *
- * @param $transition
- *   An object with from_name and to_name properties that reference moderation
+ * @param array $transition
+ *   An array with from_name and to_name properties that reference moderation
  *   states.
- *
- * @return int
- *   Returns MergeQuery::STATUS_INSERT or MergeQuery::STATUS_UPDATE depending
- *   on if this INSERT'ing a new transation or UPDATE'ing an existing one.
  *
  * @see hook_workbench_moderation_transition_save()
  */
 function workbench_moderation_transition_save($transition) {
-  $status = db_merge('workbench_moderation_transitions')
-    ->key(array(
-      'name' => $transition->name,
-      'from_name' => $transition->from_name,
-      'to_name' => $transition->to_name,
-    ))
-    ->fields((array) $transition)
-    ->execute();
+  $config = config('workbench_moderation.transitions');
+  $config->set($transition['name'], $transition);
+  $config->save();
 
   foreach (module_implements('workbench_moderation_transition_save') as $module) {
     // Don't call this function! That would lead to infinite recursion.
     if ($module !== 'workbench_moderation') {
-      module_invoke($module, 'workbench_moderation_transition_save', $transition, $status);
+      module_invoke($module, 'workbench_moderation_transition_save', $transition);
     }
   }
 
-  return $status;
 }
 
 /**
@@ -1643,10 +1629,9 @@ function workbench_moderation_transition_delete($transition) {
     }
   }
 
-  db_delete('workbench_moderation_transitions')
-    ->condition('from_name', $transition->from_name)
-    ->condition('to_name', $transition->to_name)
-    ->execute();
+  $config_transitions = config('workbench_moderation.transitions');
+  $config_transitions->clear($transition['name']);
+  $config_transitions->save();
 }
 
 /**
@@ -1684,14 +1669,20 @@ function workbench_moderation_states_next($current_state, $account, $node) {
     unset($states[$current_state]);
   }
   else {
-    // Get a list of possible transitions.
-    $select = db_select('workbench_moderation_transitions', 'transitions')
-      ->condition('transitions.from_name', $current_state)
-      ->fields('transitions', array('to_name'))
-      ->fields('states', array('label'));
-    $select->join('workbench_moderation_states', 'states', 'transitions.to_name = states.name');
-
-    $states = $select->execute()->fetchAllKeyed();
+    $config_transitions = config('workbench_moderation.transitions');
+    $transitions = $config_transitions->getData();
+    foreach ($transitions as $t) {
+      if ($t['from_name'] == $current_state) {
+        $transition = $t;
+      }
+    }
+    $config_states = config('workbench_moderation.states');
+    $states = $config_states->getData();
+    foreach ($states as $s) {
+      if ($s['name'] != $transition['to_name']) {
+        unset($states[$s['name']]);
+      }
+    }
 
     // Checks whether the user has permission to make each transition. The
     // 'bypass workbench moderation' permission is accounted for in
@@ -1852,7 +1843,7 @@ function workbench_moderation_moderate_form($form, &$form_state, $node, $destina
 function _workbench_moderation_default_next_state($current_state, $next_states) {
   $states = workbench_moderation_states();
   foreach ($states as $state_name => $state) {
-    if ($state->weight > $states[$current_state]->weight && isset($next_states[$state_name])) {
+    if ($state['weight'] > $states[$current_state]['weight'] && isset($next_states[$state_name])) {
       return $state_name;
     }
   }
@@ -2163,14 +2154,14 @@ function workbench_moderation_trigger_info() {
 
   // Add a trigger for each transition.
   foreach ($transitions as $transition_definition) {
-    $transition_string = 'wmt_' . $transition_definition->from_name . '__' . $transition_definition->to_name;
+    $transition_string = 'wmt_' . $transition_definition['from_name'] . '__' . $transition_definition['to_name'];
     // Hash this string if it's longer than the db field size
     if (strlen($transition_string) > 32) {
       $transition_string = md5($transition_string);
     }
 
     $output['workbench_moderation'][$transition_string] = array(
-      'label' => t('Transition from the state %from_name to %to_name occurs.', array('%from_name' => $transition_definition->from_name, '%to_name' => $transition_definition->to_name)),
+      'label' => t('Transition from the state %from_name to %to_name occurs.', array('%from_name' => $transition_definition['from_name'], '%to_name' => $transition_definition['to_name'])),
     );
   }
 
@@ -2232,7 +2223,7 @@ function workbench_moderation_action_info() {
 
   // Add a trigger for each transition.
   foreach ($transitions as $transition_definition) {
-    $transition_string = 'wmt_' . $transition_definition->from_name . '__' . $transition_definition->to_name;
+    $transition_string = 'wmt_' . $transition_definition['from_name'] . '__' . $transition_definition['to_name'];
     // Hash this string if it's longer than the db field size
     if (strlen($transition_string) > 32) {
       $transition_string = md5($transition_string);
@@ -2315,79 +2306,10 @@ function workbench_moderation_migrate_api() {
 }
 
 /**
- * Implements hook_entity_info().
- */
-function workbench_moderation_entity_info() {
-  // Entification of transitions, for use with an entity reference field.
-  $entity_info['workbench_moderation_transition'] = array(
-    'label' => t('Workbench Moderation Transition'),
-    'label callback' => 'workbench_moderation_transition_label_callback',
-    'entity class' => 'Entity', //'EntityPlusCmiEntity',
-    'controller class' => 'EntityPlusController', //'EntityPlusCmiController',
-    'access callback' => 'workbench_moderation_transition_access',
-    'base table' => 'workbench_moderation_transitions',
-    'fieldable' => FALSE,
-    'module' => 'workbench_moderation',
-    'entity keys' => array(
-      'id' => 'id',
-    ),
-  );
-
-  return $entity_info;
-}
-
-/**
  * Wrapper for user_access to admin workbench_moderation.
  */
 function workbench_moderation_transition_access($op, $profile = NULL, $account = NULL) {
   return user_access('administer workbench moderation');
-}
-
-/**
- * Label callback for workbench_moderation_transitions, for reference fields.
- */
-function workbench_moderation_transition_label_callback($workbench_moderation_transition, $type) {
-  return empty($workbench_moderation_transition->name) ? 'Unnamed Workbench Moderation Transition' : $workbench_moderation_transition->name;
-}
-
-/**
- * Fetch a workbench_moderation_transition object.
- *
- * @param int $id
- *   Integer specifying the workbench_moderation_transition id.
- * @param bool $reset
- *   A boolean indicating that the internal cache should be reset.
- *
- * @return obj
- *   A fully-loaded $workbench_moderation_transition object,
- *   or FALSE if it cannot be loaded.
- *
- * @see workbench_moderation_transition_load_multiple()
- */
-function workbench_moderation_transition_load($id, $reset = FALSE) {
-  $workbench_moderation_transition = workbench_moderation_transition_load_multiple(array($id), array(), $reset);
-  return reset($workbench_moderation_transition);
-}
-
-/**
- * Load multiple workbench_moderation_transition based on certain conditions.
- *
- * @param array $ids
- *   An array of workbench_moderation_transition IDs.
- * @param array $conditions
- *   An array of conditions to match against the
- *   {workbench_moderation_transition} table.
- * @param bool $reset
- *   A boolean indicating that the internal cache should be reset.
- *
- * @return array
- *   An array of workbench_moderation_transition objects, indexed by wmpid.
- *
- * @see entity_load()
- * @see workbench_moderation_transition_load()
- */
-function workbench_moderation_transition_load_multiple($ids = array(), $conditions = array(), $reset = FALSE) {
-  return entity_load('workbench_moderation_transition', $ids, $conditions, $reset);
 }
 
 /**

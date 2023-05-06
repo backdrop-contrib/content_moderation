@@ -19,39 +19,39 @@ function workbench_moderation_admin_states_form($form, &$form_state) {
   // List existing states.
   $states = workbench_moderation_states();
   foreach ($states as $state) {
-    $form['states'][$state->name]['state'] = array(
+    $form['states'][$state['name']]['state'] = array(
       '#type' => 'value',
       '#value' => $state,
     );
-    $form['states'][$state->name]['name'] = array(
+    $form['states'][$state['name']]['name'] = array(
       '#type' => 'value',
-      '#value' => $state->name,
+      '#value' => $state['name'],
     );
-    $form['states'][$state->name]['label'] = array(
+    $form['states'][$state['name']]['label'] = array(
       '#type' => 'textfield',
-      '#default_value' => $state->label,
+      '#default_value' => $state['label'],
       '#maxlength' => 255,
       '#size' => 30,
     );
-    $form['states'][$state->name]['machine_name'] = array(
-      '#markup' => check_plain($state->name),
+    $form['states'][$state['name']]['machine_name'] = array(
+      '#markup' => check_plain($state['name']),
     );
-    $form['states'][$state->name]['description'] = array(
+    $form['states'][$state['name']]['description'] = array(
       '#type' => 'textfield',
-      '#default_value' => $state->description,
+      '#default_value' => $state['description'],
     );
-    $form['states'][$state->name]['weight'] = array(
+    $form['states'][$state['name']]['weight'] = array(
       '#type' => 'weight',
-      '#default_value' => $state->weight,
+      '#default_value' => $state['weight'],
     );
-    $form['states'][$state->name]['delete'] = array(
+    $form['states'][$state['name']]['delete'] = array(
       '#type' => 'checkbox',
       '#title' => t('Delete'),
       '#title_display' => 'invisible',
       '#default_value' => FALSE,
     );
-    if ($state->name == workbench_moderation_state_published() || $state == workbench_moderation_state_none()) {
-      $form['states'][$state->name]['delete']['#disabled'] = TRUE;
+    if ($state['name'] == workbench_moderation_state_published() || $state == workbench_moderation_state_none()) {
+      $form['states'][$state['name']]['delete']['#disabled'] = TRUE;
     }
   }
 
@@ -143,7 +143,7 @@ function workbench_moderation_admin_states_form_submit($form, &$form_state) {
       backdrop_set_message(t('Moderation state %label (%name) has been deleted.', array('%label' => $info['label'], '%name' => $info['name'])));
     }
     elseif (!empty($info['name'])) {
-      $state = (object) array(
+      $state = array(
         'name' => $info['name'],
         'label' => $info['label'],
         'description' => $info['description'],
@@ -174,7 +174,7 @@ function workbench_moderation_admin_transitions_form($form, &$form_state) {
     '#tree' => TRUE,
   );
 
-  // List existing states.
+  // List existing transitions.
   $transitions = workbench_moderation_transitions();
 
   foreach ($transitions as $transition) {
@@ -185,13 +185,20 @@ function workbench_moderation_admin_transitions_form($form, &$form_state) {
       '#value' => $transition,
     );
     $element['name'] = array(
-      '#markup' => check_plain($transition->name),
+      '#type' => 'value',
+      '#value' => $transition['name'],
+    );
+    $element['label'] = array(
+      '#markup' => check_plain($transition['label']),
+    );
+    $element['machine_name'] = array(
+      '#markup' => check_plain($transition['name']),
     );
     $element['from_name'] = array(
-      '#markup' => check_plain(workbench_moderation_state_label($transition->from_name)),
+      '#markup' => check_plain(workbench_moderation_state_label($transition['from_name'])),
     );
     $element['to_name'] = array(
-      '#markup' => check_plain(workbench_moderation_state_label($transition->to_name)),
+      '#markup' => check_plain(workbench_moderation_state_label($transition['to_name'])),
     );
     $element['delete'] = array(
       '#type' => 'checkbox',
@@ -208,10 +215,21 @@ function workbench_moderation_admin_transitions_form($form, &$form_state) {
 
   array_unshift($options, t('- Choose state -'));
   $element = array();
-  $element['name'] = array(
+  $element['label'] = array(
     '#type' => 'textfield',
-    '#title' => t('Transition Name'),
-    '#size' => '35'
+    '#title' => t('Transition Label'),
+    '#maxlength' => 255,
+    '#size' => 30,
+  );
+  $element['name'] = array(
+    '#type' => 'machine_name',
+    '#maxlength' => 255,
+    '#size' => 30,
+    '#required' => FALSE,
+    '#machine_name' => array(
+      'exists' => 'workbench_moderation_transition_load',
+      'source' => array('transitions', 'new', 'label'),
+    ),
   );
   $element['from_name'] = array(
     '#type' => 'select',
@@ -241,6 +259,7 @@ function theme_workbench_moderation_admin_transitions_form($variables) {
 
   $header = array(
     t('Name'),
+    t('Machine name'),
     t('From'),
     '',
     t('To'),
@@ -251,9 +270,10 @@ function theme_workbench_moderation_admin_transitions_form($variables) {
   foreach (element_children($form['transitions']) as $key) {
     $element = &$form['transitions'][$key];
     $row = array('data' => array());
-    $row['data']['name'] = backdrop_render($element['name']);
+    $row['data']['label'] = backdrop_render($element['label']);
+    $row['data']['name'] = backdrop_render($element['name']) . backdrop_render($element['machine_name']);
     $row['data']['from'] = backdrop_render($element['from_name']);
-    $row['data'][] = '--&gt;';
+    $row['data'][] = '&gt;';
     $row['data']['to'] = backdrop_render($element['to_name']);
     $row['data']['delete'] = backdrop_render($element['delete']);
     $rows[] = $row;
@@ -277,7 +297,7 @@ function workbench_moderation_admin_transitions_form_validate($form, &$form_stat
     }
     else {
       foreach (workbench_moderation_transitions() as $t) {
-        if ($new['from_name'] == $t->from_name && $new['to_name'] == $t->to_name) {
+        if ($new['from_name'] == $t['from_name'] && $new['to_name'] == $t['to_name']) {
           form_set_error('transitions][new', t('This transition already exists.'));
           break;
         }
@@ -293,16 +313,17 @@ function workbench_moderation_admin_transitions_form_submit($form, &$form_state)
   foreach ($form_state['values']['transitions'] as $transition) {
     if (!empty($transition['delete'])) {
       workbench_moderation_transition_delete($transition['transition']);
-      backdrop_set_message(t('%from --&gt; %to has been deleted.', array('%from' => workbench_moderation_state_label($transition['transition']->from_name), '%to' => workbench_moderation_state_label($transition['transition']->to_name))));
+      backdrop_set_message(t('%from --&gt; %to has been deleted.', array('%from' => workbench_moderation_state_label($transition['transition']['from_name']), '%to' => workbench_moderation_state_label($transition['transition']['to_name']))));
     }
-    elseif (!empty($transition['name']) && !empty($transition['from_name']) && !empty($transition['to_name'])) {
-      $new_transition = (object) array(
+    elseif (!empty($transition['label']) && !empty($transition['from_name']) && !empty($transition['to_name'])) {
+      $new_transition = array(
         'name' => $transition['name'],
+        'label' => $transition['label'],
         'from_name' => $transition['from_name'],
         'to_name' => $transition['to_name'],
       );
       workbench_moderation_transition_save($new_transition);
-      backdrop_set_message(t('%name: %from --&gt; %to has been created.',array('%name' => $new_transition->name, '%from' => workbench_moderation_state_label($new_transition->from_name), '%to' => workbench_moderation_state_label($new_transition->to_name))));
+      backdrop_set_message(t('%label: %from --&gt; %to has been created.',array('%label' => $new_transition['label'], '%from' => workbench_moderation_state_label($new_transition['from_name']), '%to' => workbench_moderation_state_label($new_transition['to_name']))));
     }
   }
 }

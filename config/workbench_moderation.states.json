@@ -1,0 +1,21 @@
+{
+    "_config_name": "workbench_moderation.states",
+    "draft": {
+        "name": "draft",
+        "label": "Draft",
+        "description": "Work in progress",
+        "weight": "-99"
+    },
+    "needs_review": {
+        "name": "needs_review",
+        "label": "Needs Review",
+        "description": "Ready for moderation",
+        "weight": "0"
+    },
+    "published": {
+        "name": "published",
+        "label": "Published",
+        "description": "Make this version live",
+        "weight": "99"
+    }
+}
