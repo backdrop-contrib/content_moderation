@@ -440,8 +440,8 @@ function content_moderation_permission() {
   $transitions = content_moderation_transitions();
 
   foreach ($transitions as $transition) {
-    $from_state = $transition->from_name;
-    $to_state = $transition->to_name;
+    $from_state = $transition['from_name'];
+    $to_state = $transition['to_name'];
 
     // Always set a permission to perform all moderation states.
     $permissions["moderate content from $from_state to $to_state"] = array(
