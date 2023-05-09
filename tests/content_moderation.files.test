@@ -45,14 +45,6 @@ class ContentModerationFilesTestCase extends FileFieldTestCase {
     $this->backdropLogin($this->moderator_user);
   }
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Content Moderation file attachments',
-      'description' => 'Test moderation on nodes with with file attachments.',
-      'group' => 'Content Moderation',
-    );
-  }
-
   function testModeratedFileField() {
     // Create a new node with an uploaded file.
     $file = $this->getTestFile('text');

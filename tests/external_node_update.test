@@ -19,20 +19,6 @@ class ContentModerationExternalNodeUpdateTestCase extends ContentModerationTestC
   protected $node;
 
   /**
-   * Returns test case metadata.
-   *
-   * @return array
-   *   The metadata.
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'External node update',
-      'description' => 'Test if nodes are correctly moderated when updated by third party modules.',
-      'group' => 'Content Moderation',
-    );
-  }
-
-  /**
    * {@inheritdoc}
    */
   public function setUp($modules = array()) {

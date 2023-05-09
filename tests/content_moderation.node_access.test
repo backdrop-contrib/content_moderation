@@ -8,14 +8,6 @@
 class ContentModerationNodeAccessTestCase extends ContentModerationTestCase {
   protected $test_user;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Node Access test',
-      'description' => 'Ensure that node access rules are enforced during moderation.',
-      'group' => 'Content Moderation',
-    );
-  }
-
   function setUp($modules = array()) {
     $modules = array_merge($modules, array('content_moderation_node_access_test'));
     parent::setUp($modules);

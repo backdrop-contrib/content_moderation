@@ -8,14 +8,6 @@
 class ContentModerationTransitionTestCase extends ContentModerationTestCase {
   protected $properties;
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Transition hook test',
-      'description' => 'Tests the usage of hook_content_moderation_transition().',
-      'group' => 'Content Moderation',
-    );
-  }
-
   function setUp($modules = array()) {
     // Enable a test module that will publish and unpublish nodes for us and
     // provide hook implementations.

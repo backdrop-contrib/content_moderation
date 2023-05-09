@@ -1,6 +1,59 @@
-files[] = tests/external_node_update.test
-files[] = tests/content_moderation.test
-files[] = tests/content_moderation.files.test
-files[] = tests/content_moderation.perms.test
-files[] = tests/content_moderation.node_access.test
-files[] = tests/content_moderation.transition.test
+[ContentModerationExternalNodeUpdateTestCase]
+name = External node update
+description = Test if nodes are correctly moderated when updated by third party modules.
+group = Content Moderation
+file = external_node_update.test
+
+[ContentModerationModerateTabTestCase]
+name = Moderation tab
+description = Create a moderated node publish it using the "Moderate" tab.
+group = Content Moderation
+file = content_moderation.test
+
+[ContentModerationDraftTabTestCase]
+name = Draft tab
+description = Test access to the "Draft" tab and publishing from the mini moderation form on the draft tab.
+group = Content Moderation
+file = content_moderation.test
+
+[ContentModerationPublishFromNodeFormTestCase]
+name = Publish from node form
+description = Publish a moderated node from the node form.
+group = Content Moderation
+file = content_moderation.test
+
+[ContentModerationUnpublishTestCase]
+name = Unpublish moderated content
+description = Create and publish a moderated node then unpublish using the "Moderate" tab.
+group = Content Moderation
+file = content_moderation.test
+
+[ContentModerationRedirectAfterTitleChangeTestCase]
+name = Alias after title change
+description = Test whether the redirect keeps up with a changed alias
+group = Content Moderation
+file = content_moderation.test
+
+[ContentModerationFilesTestCase]
+name = Content Moderation file attachments
+description = Test moderation on nodes with with file attachments.
+group = Content Moderation
+file = content_moderation.files.test
+
+[ContentModerationViewUnpublishedTestCase]
+name = View all unpublished content
+description = Create a user who can view unpublished content. Create a node and leave it unpublished. Try to view it.
+group = Content Moderation
+file = content_moderation.perms.test
+
+[ContentModerationNodeAccessTestCase]
+name = Node Access test
+description = Ensure that node access rules are enforced during moderation.
+group = Content Moderation
+file = content_moderation.node_access.test
+
+[ContentModerationTransitionTestCase]
+name = Transition hook test
+description = Tests the usage of hook_content_moderation_transition().
+group = Content Moderation
+file = content_moderation.transition.test

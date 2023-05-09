@@ -1,5 +1,6 @@
 name = Content Moderation Test
 description = Test module for Content Moderation.
 package = Content
-core = 7.x
+backdrop = 1.x
+type = module
 hidden = TRUE

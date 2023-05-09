@@ -35,9 +35,7 @@ class ContentModerationViewUnpublishedTestCase extends ContentModerationPermsTes
 
   public static function getInfo() {
     return array(
-      'name' => 'View all unpublished content',
-      'description' => 'Create a user who can view unpublished content. Create a node and leave it unpublished. Try to view it.',
-      'group' => 'Content Moderation',
+
     );
   }
 

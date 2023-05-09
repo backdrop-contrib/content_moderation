@@ -56,14 +56,6 @@ class ContentModerationTestCase extends BackdropWebTestCase {
 
 class ContentModerationModerateTabTestCase extends ContentModerationTestCase {
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Moderation tab',
-      'description' => 'Create a moderated node publish it using the "Moderate" tab.',
-      'group' => 'Content Moderation',
-    );
-  }
-
   function setUp($modules = array()) {
     parent::setUp($modules);
     $this->backdropLogin($this->moderator_user);
@@ -130,17 +122,6 @@ class ContentModerationModerateTabTestCase extends ContentModerationTestCase {
 
 class ContentModerationDraftTabTestCase extends ContentModerationTestCase {
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Draft tab',
-      'description' => 'Test access to the "Draft" tab and publishing from the mini moderation form on the draft tab.',
-      'group' => 'Content Moderation',
-      'dependencies' => array(
-        'content', // Content is required for the mini moderation form
-      ),
-    );
-  }
-
   function setUp($modules = array()) {
     $modules = array_merge($modules, array('content'));
     parent::setUp($modules);
@@ -205,14 +186,6 @@ class ContentModerationDraftTabTestCase extends ContentModerationTestCase {
 
 class ContentModerationPublishFromNodeFormTestCase extends ContentModerationTestCase {
 
-  public static function getInfo() {
-    return array(
-      'name' => 'Publish from node form',
-      'description' => 'Publish a moderated node from the node form.',
-      'group' => 'Content Moderation',
-    );
-  }
-
   function setUp($modules = array()) {
     parent::setUp($modules);
     $this->backdropLogin($this->admin_user);
@@ -244,14 +217,6 @@ class ContentModerationPublishFromNodeFormTestCase extends ContentModerationTest
 }
 
 class ContentModerationUnpublishTestCase extends ContentModerationTestCase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Unpublish moderated content',
-      'description' => 'Create and publish a moderated node, then unpublish using the "Moderate" tab.',
-      'group' => 'Content Moderation',
-    );
-  }
 
   function setUp($modules = array()) {
     parent::setUp($modules);
@@ -285,18 +250,6 @@ class ContentModerationUnpublishTestCase extends ContentModerationTestCase {
  * this matters when aliases exist using the title as a token.
  */
 class ContentModerationRedirectAfterTitleChangeTestCase extends ContentModerationTestCase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Alias after title change',
-      'description' => 'Test whether the redirect keeps up with a changed alias',
-      'group' => 'Content Moderation',
-      'dependencies' => array(
-        'content', // Workbench is required for the mini moderation form.
-        'pathauto', // Pathauto is required for automatic aliases, without which this test is unnecessary.
-      ),
-    );
-  }
 
   function setUp($modules = array()) {
     // Make sure Content and Pathauto are both enabled.
