@@ -698,6 +698,7 @@ function content_moderation_entity_presave($entity, $entity_type) {
     $entity->status = NODE_PUBLISHED;
   }
 
+  // @todo can we remove `is_draft_revision` property?
   // If we are unpublishing a node, do not force revision.
   if (!$entity->status) {
     // @todo do we have to set it as the active revision or not?
@@ -708,6 +709,11 @@ function content_moderation_entity_presave($entity, $entity_type) {
   // marked as such.
   elseif (!isset($entity->is_draft_revision) && !$published) {
     $entity->is_draft_revision = TRUE;
+  }
+
+  // @todo only do so if core setting is "Save as draft" or override it?
+  if (!$published) {
+    $entity->status = NODE_NOT_PUBLISHED;
   }
 
 }
