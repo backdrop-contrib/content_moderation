@@ -666,6 +666,7 @@ function content_moderation_entity_presave($entity, $entity_type) {
 
   // If we are unpublishing a node, do not force revision.
   if (!$entity->status) {
+    // @todo do we have to set it as the active revision or not?
     $entity->is_draft_revision = FALSE;
   }
 
@@ -989,7 +990,7 @@ function content_moderation_form_node_form_alter(&$form, $form_state) {
 
     // If the user has access to the pre-set default state, make it the default
     // here.  Otherwise, don't set a default in this case.
-    $default_state = variable_get('content_moderation_default_state_' . $form['type']['#value']);
+    $default_state = config_get('node.type.' . $form['type']['#value'] , 'settings.content_moderation_default_state');
     if ($default_state && array_key_exists($default_state, $states)) {
       $form['revision_information']['content_moderation_state_new']['#default_value'] = $default_state;
     }
@@ -1012,7 +1013,7 @@ function content_moderation_form_node_form_alter(&$form, $form_state) {
   );
 
   // Set a default revision log message.
-  $logged_name = (user_is_anonymous() ? variable_get('anonymous', t('Anonymous')) : format_username($user));
+  $logged_name = (user_is_anonymous() ? config_get('site.core', 'anonymous') : user_format_name($user));
   if (!empty($form['#node']->nid)) {
     $form['revision_information']['log']['#default_value'] = t('Edited by !user.', array('!user' => $logged_name));
   }
@@ -1034,6 +1035,7 @@ function content_moderation_form_node_form_alter(&$form, $form_state) {
     $form['revision_information']['#access'] = FALSE;
   }
 
+  // @todo make this part work again.
   // Setup the JS for the vertical tabs summary. The heavy weight allows this
   // script to replace the default node summary callbacks that get registered by
   // "lighter" scripts.
@@ -1971,7 +1973,7 @@ function content_moderation_messages($context, $node = NULL) {
     // Revision navigation links. This is disabled for the time being, since
     // node tabs are lost when navigating through old revisions.
     // @TODO remove this entirely?
-    if (variable_get('content_moderation_show_revision_navigation', FALSE) && user_access('view revisions')) {
+    if (settings_get('content_moderation_show_revision_navigation', FALSE) && user_access('view revisions')) {
       $links = array();
 
       // Get previous and next revision ids.
@@ -2067,11 +2069,11 @@ function content_moderation_messages_shown($context, $node) {
  *
  * @see content_moderation_messages()
  *
- * @param $text
+ * @param string $text
  *   The link text to use.
- * @param $internal_path
+ * @param string $internal_path
  *   The Backdrop path for the link.
- * @param $options
+ * @param array $options
  *   Link options, following the format of url().
  *
  * @return
@@ -2279,26 +2281,6 @@ function content_moderation_set_state_action($node, $context) {
 }
 
 /**
- * Implements hook_ctools_plugin_directory() to let the system know
- * where our task and task_handler plugins are.
- */
-function content_moderation_ctools_plugin_directory($owner, $plugin_type) {
-  if ($owner == 'page_manager') {
-    return 'plugins/page_manager/' . $plugin_type;
-  }
-}
-
-/**
- * Implements hook_ctools_plugin_api().
- */
-function content_moderation_ctools_plugin_api($module, $api) {
-
-  if ($module == 'page_manager' && $api == 'pages_default') {
-    return array('version' => 1);
-  }
-}
-
-/**
  * Implement hook_migrate_api().
  */
 function content_moderation_migrate_api() {
@@ -2357,103 +2339,4 @@ function content_moderation_node_export_node_import_alter(&$node, $original_node
     return;
   }
   $node->revision = 1;
-}
-
-/**
- * Implements hook_ctools_plugin_pre_alter().
- *
- * If this is a the ctools node_edit arguments plugin provide a different context
- * creation callback.
- * Also if this a page manager node_edit tasks plugin provide a different
- * hook_menu_alter callback.
- */
-function content_moderation_ctools_plugin_pre_alter(&$plugin, $plugin_type_info){
-  if ($plugin_type_info['type'] == 'arguments' && $plugin['name'] == 'node_edit') {
-    $plugin['context'] = 'content_moderation_node_edit_context';
-  }
-  if ($plugin_type_info['type'] == 'tasks' && $plugin['name'] == 'node_edit') {
-    $plugin['hook menu alter'] = 'content_moderation_page_manager_node_edit_menu_alter_callback';
-  }
-}
-
-/**
- * Custom hook_menu_alter callback for the page_manager node_edit tasks plugin.
- * @see content_moderation_ctools_plugin_pre_alter()
- *
- * This callback is the same as the original defined in the plugin, except that
- * it allows the menu item for node/%node/edit to be handled by
- * page_manager_node_edit even though content_moderation has its own
- * hook_menu_alter implementation that defined a different page callback.
- * Page manager can handle this path for content moderated nodes because of
- * content_moderation_node_edit_context().
- */
-function content_moderation_page_manager_node_edit_menu_alter_callback(&$items, $task) {
-  if (variable_get('page_manager_node_edit_disabled', TRUE)) {
-    return;
-  }
-
-  $callback = $items['node/%node/edit']['page callback'];
-  // Override the node edit handler for our purpose.
-  if ($callback == 'node_page_edit' || $callback == 'content_moderation_node_edit_page_override' || variable_get('page_manager_override_anyway', FALSE)) {
-    $items['node/%node/edit']['page callback'] = 'page_manager_node_edit';
-    $items['node/%node/edit']['file path'] = $task['path'];
-    $items['node/%node/edit']['file'] = $task['file'];
-  }
-  else {
-    variable_set('page_manager_node_edit_disabled', TRUE);
-    if (!empty($GLOBALS['page_manager_enabling_node_edit'])) {
-      watchdog('Content moderation', t('Page manager module is unable to enable node/%node/edit because some other module already has overridden with %callback.', array('%callback' => $callback)), 'warning');
-    }
-    return;
-  }
-
-  // Also catch node/add handling:
-  foreach (node_type_get_types() as $type) {
-    $path = 'node/add/' . str_replace('_', '-', $type->type);
-    if ($items[$path]['page callback'] != 'node_add') {
-      if (!empty($GLOBALS['page_manager_enabling_node_edit'])) {
-        backdrop_set_message(t('Page manager module is unable to override @path because some other module already has overridden with %callback. Node edit will be enabled but that edit path will not be overridden.', array('@path' => $path, '%callback' => $items[$path]['page callback'])), 'warning');
-      }
-      continue;
-    }
-
-    $items[$path]['page callback'] = 'page_manager_node_add';
-    $items[$path]['file path'] = $task['path'];
-    $items[$path]['file'] = $task['file'];
-    $items[$path]['page arguments'] = array($type->type);
-  }
-}
-
-
-/**
- * Custom context creation callback for the ctools node_edit arguments plugin.
- * @see content_moderation_ctools_plugin_pre_alter()
- *
- * This takes the node or nid and loads the correct node by calling
- * content_moderation_node_current_load().
- */
-function content_moderation_node_edit_context($arg = NULL, $conf = NULL, $empty = FALSE) {
-  // If unset it wants a generic, unfilled context.
-  if ($empty) {
-    return ctools_context_create_empty('node_edit_form');
-  }
-
-  // We can accept either a node object or a pure nid.
-  if (is_object($arg)) {
-    $node = content_moderation_node_current_load($arg);
-    return ctools_context_create('node_edit_form', $node);
-  }
-
-  if (!is_numeric($arg)) {
-    return FALSE;
-  }
-
-  $node = node_load($arg);
-  $node = content_moderation_node_current_load($node);
-  if (!$node) {
-    return NULL;
-  }
-
-  // This will perform a node_access check, so we don't have to.
-  return ctools_context_create('node_edit_form', $node);
 }

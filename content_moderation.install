@@ -16,6 +16,18 @@ function content_moderation_install() {
 }
 
 /**
+ * Implements hook_uninstall().
+ */
+function content_moderation_uninstall() {
+  // Remove default, un-modified view.
+  $config = config('views.view.content_moderation');
+  // Only update if view isn't overridden (VIEWS_STORAGE_OVERRIDE).
+  if ($config->get('storage') != 2) {
+    $config->delete();
+  }
+}
+
+/**
  * Implements hook_schema().
  */
 function content_moderation_schema() {
@@ -107,11 +119,6 @@ function content_moderation_update_last_removed() {
  * Convert variables to config.
  */
 function content_moderation_update_1000() {
-  $config = config('content_moderation.settings');
-  $config->set('nodedraft_disabled', update_variable_get('workbench_moderation_nodedraft_disabled', TRUE));
-  $config->set('show_revision_navigation', update_variable_get('workbench_moderation_show_revision_navigation', TRUE));
-  $config->save();
-
   // Delete content_moderation variables.
   update_variable_del('workbench_moderation_nodedraft_disabled');
   update_variable_del('workbench_moderation_show_revision_navigation');
