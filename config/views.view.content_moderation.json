@@ -2,6 +2,8 @@
   "_config_name": "views.view.content_moderation",
   "name": "content_moderation",
   "description": "Lists content by moderation state.",
+  "module": "content_moderation",
+  "storage": 4,
   "tag": "Content Moderation",
   "disabled": false,
   "base_table": "node_revision",
@@ -370,7 +372,11 @@
         "menu": {
           "type": "tab",
           "title": "Needs review",
-          "weight": "99"
+          "description": "",
+          "name": "management",
+          "weight": "99",
+          "context": 0,
+          "context_only_inline": 0
         }
       }
     },
@@ -480,7 +486,11 @@
         "menu": {
           "type": "tab",
           "title": "My drafts",
-          "weight": "98"
+          "description": "",
+          "name": "management",
+          "weight": "98",
+          "context": 0,
+          "context_only_inline": 0
         }
       }
     }
