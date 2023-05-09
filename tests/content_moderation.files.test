@@ -5,7 +5,7 @@
  * Tests for using file fields with content_moderation.module.
  */
 
-class ContentModerationFilesTestCase extends FileFieldTestCase {
+class ContentModerationFilesTestCase extends FileTestHelper {
   protected $content_type;
   protected $moderator_user;
 
@@ -14,12 +14,15 @@ class ContentModerationFilesTestCase extends FileFieldTestCase {
   function setUp() {
     parent::setUp();
 
-    module_enable(array('drafty', 'content_moderation'));
+    module_enable(array('content_moderation'));
 
     // Create a new content type and enable moderation on it.
     $type = $this->backdropCreateContentType();
     $this->content_type = $type->name;
-    variable_set('node_options_' . $this->content_type, array('revision', 'moderation'));
+    $config_node_type = config('node.type.' . $this->content_type);
+    $config_node_type->set('settings.moderation_enabled', 1);
+    $config_node_type->set('settings.revision_enabled', 1);
+    $config_node_type->save();
 
     // Add a file field to the new content type.
     $this->field_name = strtolower($this->randomName());
