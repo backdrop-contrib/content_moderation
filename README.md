@@ -241,7 +241,7 @@ complete text.
 ## Credit
 
 Ported to Backdrop by [herbdool](https://github.com/herbdool) from Workbench
-Moderation.
+Moderation. Originally based on content_moderation module by eugenmayer.
 
 Drupal Maintainers:
 

@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @file
  * Provides node functions for Content Moderation.
@@ -10,10 +9,10 @@
  *
  * This page will deliver either the 'draft' page or the regular node view page.
  *
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
  */
-function content_moderation_node_current_view($node) {
+function content_moderation_node_current_view(Node $node) {
   if (_content_moderation_access_current_draft($node)) {
     backdrop_goto('node/' . $node->nid . '/draft');
   }
@@ -23,12 +22,12 @@ function content_moderation_node_current_view($node) {
 /**
  * Get the menu router item for nodes.
  *
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
- * @return
+ * @return array
  *   A fully themed node page.
  */
-function content_moderation_router_item_page_callback($node) {
+function content_moderation_router_item_page_callback(Node $node) {
   $router_item = menu_get_item('node/' . $node->nid);
   if ($router_item['include_file']) {
     require_once BACKDROP_ROOT . '/' . $router_item['include_file'];
@@ -50,13 +49,13 @@ function content_moderation_router_item_page_callback($node) {
 /**
  * Displays the current draft the node, if it is not published.
  *
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
  *
- * @return
+ * @return array
  *   A fully themed node page.
  */
-function content_moderation_node_view_draft($node) {
+function content_moderation_node_view_draft(Node $node) {
   $current_node = content_moderation_node_current_load($node);
 
   // Set the $node object in menu_get_item to the current node revision.
@@ -69,13 +68,13 @@ function content_moderation_node_view_draft($node) {
 /**
  * Displays a specific revisison of the node.
  *
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
  *
- * @return
+ * @return array
  *   A fully themed node page.
  */
-function content_moderation_node_view_revision($node) {
+function content_moderation_node_view_revision(Node $node) {
   return content_moderation_router_item_page_callback($node);
 }
 
@@ -88,7 +87,7 @@ function content_moderation_node_view_revision($node) {
  * @return array
  *   A themed table of data and links for node moderation actions.
  */
-function content_moderation_node_history_view($node) {
+function content_moderation_node_history_view(Node $node) {
   global $user;
 
   // Page title.
@@ -264,13 +263,19 @@ function content_moderation_node_history_view($node) {
   // If this page is being re-loaded as a result of the revision form being
   // submitted, it is not until this point that we can accurately check
   // if the moderation state is published or not.
-  // Alert if there is no live node
+  // Alert if there is no live node.
   if (!isset($node->content_moderation['published'])) {
     backdrop_set_message(t('Currently there is no published revision of this node.'), 'warning');
   }
 
   // Set the table header.
-  $header = array(t('Revision'), t('Title'), t('Date'), t('Revision actions'), t('Moderation actions'));
+  $header = array(
+    t('Revision'),
+    t('Title'),
+    t('Date'),
+    t('Revision actions'),
+    t('Moderation actions'),
+  );
 
   // Return properly styled output.
   $build['pager_table'] = array(
@@ -293,13 +298,13 @@ function content_moderation_node_history_view($node) {
 /**
  * Form to unpublish the live revision.
  *
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
  *
- * @return
+ * @return array
  *   A Backdrop confirmation form to unpublish the live revision.
  */
-function content_moderation_node_unpublish_form($form, &$form_state, $node) {
+function content_moderation_node_unpublish_form($form, &$form_state, Node $node) {
   global $user;
 
   // Ensure that this is the live revision.
@@ -314,7 +319,7 @@ function content_moderation_node_unpublish_form($form, &$form_state, $node) {
     '#type' => 'value',
   );
   $form['message'] = array(
-    '#markup' =>  '<p>' . t('Are you sure that you want to unpublish the live revision of this content?') . '</p>',
+    '#markup' => '<p>' . t('Are you sure that you want to unpublish the live revision of this content?') . '</p>',
   );
 
   $current_state = $node->content_moderation['my_revision']->state;
@@ -348,5 +353,5 @@ function content_moderation_node_unpublish_form_submit($form, &$form_state) {
   content_moderation_moderate($node, $form_state['values']['state']);
 
   backdrop_set_message(t('The live revision of this content has been unpublished.'));
-  $form_state['redirect'] ="node/{$node->nid}/moderation";
+  $form_state['redirect'] = "node/{$node->nid}/moderation";
 }

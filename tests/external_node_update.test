@@ -1,8 +1,13 @@
 <?php
-
 /**
  * @file
  * Tests moderation states when nodes are (un)published by other modules.
+ */
+
+require_once 'content_moderation.test';
+
+/**
+ * Content moderation external node update tests.
  */
 class ContentModerationExternalNodeUpdateTestCase extends ContentModerationTestCase {
 

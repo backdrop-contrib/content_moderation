@@ -1,0 +1,282 @@
+<?php
+/**
+ * @file
+ * Basic Tests for content_moderation.module.
+ */
+
+require_once 'content_moderation.test';
+
+/**
+ * Content moderation tab tests.
+ */
+class ContentModerationModerateTabTestCase extends ContentModerationTestCase {
+  /**
+   * @inheritdoc
+   */
+  public function setUp($modules = array()) {
+    parent::setUp($modules);
+    $this->backdropLogin($this->moderator_user);
+  }
+
+  /**
+   * Test moderate tab.
+   */
+  public function testModerateTab() {
+    $is_moderated = content_moderation_node_type_moderated($this->content_type);
+    $this->assertTrue($is_moderated, t('The content type is moderated.'));
+
+    // Create a new node and make sure it is unpublished.
+    $body_name = 'body[' . LANGUAGE_NONE . '][0]';
+    $edit = array(
+      'title' => $this->randomName(),
+      "{$body_name}[value]" => $this->randomString(128),
+      "{$body_name}[format]" => filter_default_format(),
+    );
+    $this->backdropPost("node/add/{$this->content_type}", $edit, t('Save'));
+
+    // Get the new node.
+    $node = $this->backdropGetNodeByTitle($edit['title']);
+
+    $this->assertFalse($node->status, t('New node is unpublished'));
+    $this->assertTrue(isset($node->content_moderation), t('Content moderation information is present on the node object'));
+    $this->assertFalse(isset($node->content_moderation['published']), t('Content moderation has no published revision'));
+
+    // Make sure the "Moderate" tab is accessible.
+    $this->backdropGet("node/{$node->nid}/moderation");
+
+    // Attempt to change the moderation state without a token in the link.
+    $this->backdropGet("node/{$node->nid}/moderation/{$node->vid}/change-state/needs_review");
+    $this->assertResponse(403);
+
+    // Run the same state change with a valid token, which should succeed.
+    $this->backdropGet("node/{$node->nid}/moderation/{$node->vid}/change-state/needs_review", array(
+      'query' => array('token' => $this->backdropGetToken("{$node->nid}:{$node->vid}:needs_review")),
+    ));
+    $this->assertResponse(200);
+    $node = node_load($node->nid, NULL, TRUE);
+    $this->assertEqual($node->content_moderation['current']->state, 'needs_review', 'Node state changed to Needs Review via callback.');
+
+    // Publish the node via the moderation form.
+    $moderate = array('state' => content_moderation_state_published());
+    $this->backdropPost("node/{$node->nid}/moderation", $moderate, t('Apply'));
+
+    $node = node_load($node->nid, NULL, TRUE);
+    $this->assertTrue(isset($node->content_moderation['published']), t('Content moderation has a published revision'));
+
+    // Create a new draft.
+    $new_title = $this->randomName(10) . '_revision1';
+    $edit = array('title' => $new_title);
+    $this->backdropPost("node/{$node->nid}/edit", $edit, t('Save'));
+
+    // Load the published and draft revisions.
+    $published = node_load($node->nid, NULL, TRUE);
+    $draft = clone $published;
+    $draft = content_moderation_node_current_load($draft);
+
+    $this->assertEqual($published->vid, $published->content_moderation['published']->vid, t('Published revision is loaded by default'));
+    $this->assertTrue($published->status, t('Published revision has status = 1'));
+    $this->assertNotEqual($published->vid, $draft->vid, t('Draft revision is different from the published revision'));
+  }
+
+}
+
+/**
+ * Content moderation draft tab test.
+ */
+class ContentModerationDraftTabTestCase extends ContentModerationTestCase {
+  /**
+   * @inheritdoc
+   */
+  public function setUp($modules = array()) {
+    $modules = array_merge($modules, array('content'));
+    parent::setUp($modules);
+    $this->backdropLogin($this->moderator_user);
+  }
+
+  /**
+   * Test draft tab.
+   */
+  public function testDraftTab() {
+    // Create a new node and make sure it is unpublished.
+    $body_name = 'body[' . LANGUAGE_NONE . '][0]';
+    $edit = array(
+      'title' => $this->randomName(),
+      "{$body_name}[value]" => $this->randomName(128),
+      "{$body_name}[format]" => filter_default_format(),
+    );
+    $this->backdropPost("node/add/{$this->content_type}", $edit, t('Save'));
+
+    // Get the new node.
+    $node = $this->backdropGetNodeByTitle($edit['title']);
+    $this->assertFalse($node->status, t('New content is unpublished'));
+
+    // Publish the node via the moderation form.
+    $moderate = array('state' => content_moderation_state_published());
+    $this->backdropPost("node/{$node->nid}/moderation", $moderate, t('Apply'));
+
+    $node = node_load($node->nid, NULL, TRUE);
+    $this->assertTrue($node->status, t('Content is published'));
+
+    // Create a new draft.
+    $edit = array(
+      'title' => $this->randomName(10) . '_revision1',
+      "{$body_name}[value]" => $this->randomName(128) . '_revision1',
+    );
+    $this->backdropPost("node/{$node->nid}/edit", $edit, t('Save'));
+
+    // Can we get to the 'draft' tab?
+    $this->backdropGet("node/{$node->nid}/draft");
+    $this->assertResponse(200, t('Draft tab is accessible'));
+
+    // Ensure the new draft content is visible.
+    $this->assertText($edit['title']);
+    $this->assertText($edit["{$body_name}[value]"]);
+
+    // Moderate the content to a non-draft, non-published state.
+    $middle_state = current(array_diff(array_keys(content_moderation_states()),
+      array(
+        content_moderation_state_none(),
+        content_moderation_state_published(),
+      )
+    ));
+    $edit = array('state' => $middle_state);
+    $this->backdropPost(NULL, $edit, t('Apply'));
+
+    // Are we still on node/NID/draft?
+    $this->assertUrl("node/{$node->nid}/draft");
+    $this->assertResponse(200);
+
+    // Publish the content.
+    $edit = array('state' => content_moderation_state_published());
+    $this->backdropPost(NULL, $edit, t('Apply'));
+
+    // Are we redirected to node/NID?
+    $this->assertUrl("node/{$node->nid}");
+    $this->assertResponse(200);
+  }
+
+}
+
+/**
+ * Content moderation publish from node form Tests.
+ */
+class ContentModerationPublishFromNodeFormTestCase extends ContentModerationTestCase {
+  /**
+   * @inheritdoc
+   */
+  public function setUp($modules = array()) {
+    parent::setUp($modules);
+    $this->backdropLogin($this->admin_user);
+  }
+
+  /**
+   * Test publish from node form.
+   */
+  public function testPublishFromNodeForm() {
+    // Create a new node and publish it immediately.
+    $body_name = 'body[' . LANGUAGE_NONE . '][0]';
+    $edit = array(
+      'title' => $this->randomName(),
+      "{$body_name}[value]" => $this->randomString(128),
+      "{$body_name}[format]" => filter_default_format(),
+      'content_moderation_state_new' => content_moderation_state_published(),
+    );
+    $this->backdropPost("node/add/{$this->content_type}", $edit, t('Save'));
+
+    // Get the new node and make sure it is published.
+    $node = $this->backdropGetNodeByTitle($edit['title']);
+    $this->assertTrue(isset($node->content_moderation['published']), t('Content moderation has a published revision'));
+    $this->assertEqual($node->vid, $node->content_moderation['published']->vid, t('Published revision is loaded by default'));
+    $this->assertTrue($node->status, t('Published revision has status = 1'));
+
+    // Test anonymous access to the published content.
+    $this->backdropLogout();
+    $this->backdropGet("node/{$node->nid}");
+    $this->assertResponse(200, t('Anonymous users can access the published content'));
+  }
+
+}
+
+/**
+ * Content moderation unpublish tests.
+ */
+class ContentModerationUnpublishTestCase extends ContentModerationTestCase {
+
+  /**
+   * @inheritdoc
+   */
+  public function setUp($modules = array()) {
+    parent::setUp($modules);
+    $this->backdropLogin($this->admin_user);
+  }
+
+  /**
+   * Test unpublish
+   */
+  public function testUnpublish() {
+    // Create a new node and publish it immediately. Assumes that
+    // ContentModerationPublishFromNodeFormTestCase passes.
+    $body_name = 'body[' . LANGUAGE_NONE . '][0]';
+    $edit = array(
+      'title' => $this->randomName(),
+      "{$body_name}[value]" => $this->randomString(128),
+      "{$body_name}[format]" => filter_default_format(),
+      'content_moderation_state_new' => content_moderation_state_published(),
+    );
+    $this->backdropPost("node/add/{$this->content_type}", $edit, t('Save'));
+    $node = $this->backdropGetNodeByTitle($edit['title']);
+
+    // Unpublish the node via the unpublish confirmation form.
+    $this->backdropPost("node/{$node->nid}/moderation/{$node->vid}/unpublish", array(), t('Unpublish'));
+
+    $unpublished_node = node_load($node->nid, FALSE, TRUE);
+    $this->assertFalse($unpublished_node->status, t('The node is not published.'));
+    $this->assertFalse(isset($unpublished_node->content_moderation['published']), t('Content moderation has no published revision.'));
+  }
+}
+
+/**
+ * Tests behavior when title is changed after initial publication of the node.
+ * this matters when aliases exist using the title as a token.
+ */
+class ContentModerationRedirectAfterTitleChangeTestCase extends ContentModerationTestCase {
+
+  /**
+   * @inheritdoc
+   */
+  public function setUp($modules = array()) {
+    // Make sure Content and Pathauto are both enabled.
+    $modules = array_merge($modules, array('content', 'pathauto'));
+    parent::setUp($modules);
+    $this->backdropLogin($this->moderator_user);
+  }
+
+  /**
+   * Tests whether a node with a changed alias correctly redirects upon
+   * re-publishing.
+   */
+  public function testAliasRedirect() {
+
+    // Create a new draft node.
+    $edit = array(
+      'title' => $this->randomName(),
+    );
+    $this->backdropPost("node/add/{$this->content_type}", $edit, t('Save'));
+
+    // Moderate node to published.
+    $moderate = array('state' => content_moderation_state_published());
+    $this->backdropPost(NULL, $moderate, t('Apply'));
+
+    // Edit node and change title.
+    $node = $this->backdropGetNodeByTitle($edit['title']);
+    $edit = array('title' => $this->randomName(10) . '_revision1');
+    $this->backdropPost("node/{$node->nid}/edit", $edit, t('Save'));
+
+    // Moderate node to published.
+    $moderate = array('state' => content_moderation_state_published());
+    $this->backdropPost(NULL, $moderate, t('Apply'));
+
+    // Check response code is 200.
+    $this->assertResponse(200);
+  }
+}

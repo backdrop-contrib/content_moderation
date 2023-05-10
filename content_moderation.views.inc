@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @file
  *  Content moderation views integration for Content.
@@ -47,10 +46,10 @@ function content_moderation_views_data() {
     'title' => t('Node'),
     'help' => t('The node according to the Content Moderation.'),
     'relationship' => array(
-        'base' => 'node',
-        'field' => 'nid',
-        'handler' => 'views_handler_relationship',
-        'label' => t('Node'),
+      'base' => 'node',
+      'field' => 'nid',
+      'handler' => 'views_handler_relationship',
+      'label' => t('Node'),
     ),
   );
 
@@ -167,7 +166,8 @@ function content_moderation_views_data() {
 
   $data['content_moderation_states']['table']['group'] = t('Content Moderation');
   $data['content_moderation_states']['table']['join'] = array(
-    // Add a join for labeling the 'state' and 'from_state' arguments on content_moderation_node_history.
+    // Add a join for labeling the 'state' and 'from_state' arguments on
+    // content_moderation_node_history.
     'content_moderation_node_history' => array(
       'left_field' => 'state',
       'field' => 'name',

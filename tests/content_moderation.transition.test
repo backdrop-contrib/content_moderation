@@ -1,20 +1,33 @@
 <?php
-
 /**
  * @file
  * Tests for node transition hooks with content_moderation.module.
  */
 
+require_once 'content_moderation.test';
+
+/**
+ * Content moderation transition tests.
+ */
 class ContentModerationTransitionTestCase extends ContentModerationTestCase {
   protected $properties;
 
-  function setUp($modules = array()) {
+  /**
+   * @inheritdoc
+   */
+  public function setUp($modules = array()) {
     // Enable a test module that will publish and unpublish nodes for us and
     // provide hook implementations.
     parent::setUp(array_merge($modules, array('content_moderation_test')));
     $this->backdropLogin($this->moderator_user);
 
-    $this->properties = array('title', 'nid', 'vid', 'previous_state', 'new_state');
+    $this->properties = array(
+      'title',
+      'nid',
+      'vid',
+      'previous_state',
+      'new_state',
+    );
   }
 
   /**
@@ -23,14 +36,17 @@ class ContentModerationTransitionTestCase extends ContentModerationTestCase {
    * @param array $expected
    *   An array of values to be set by the transition.
    */
-  private function assertTransition($expected = array()) {
+  private function assertTransition(array $expected = array()) {
     foreach ($this->properties as $name) {
       $value = content_moderation_test_get($name);
       $this->assertEqual($value, $expected[$name], "Transition success: $name set to $value");
     }
   }
 
-  function testTransitionFromNodeForm() {
+  /**
+   * Test transition from node form.
+   */
+  public function testTransitionFromNodeForm() {
     // Create a new node and publish it immediately.
     $body_name = 'body[' . LANGUAGE_NONE . '][0]';
     $edit = array(
@@ -69,7 +85,7 @@ class ContentModerationTransitionTestCase extends ContentModerationTestCase {
 
     // Moderate to needs review and check transition.
     $this->backdropGet("node/1/moderation/2/change-state/needs_review", array(
-      'query' => array('token' => $this->backdropGetToken("1:2:needs_review"))
+      'query' => array('token' => $this->backdropGetToken("1:2:needs_review")),
     ));
     $expected = array(
       'nid' => 1,
@@ -83,7 +99,7 @@ class ContentModerationTransitionTestCase extends ContentModerationTestCase {
 
     // Publish the revision and check transition.
     $this->backdropGet("node/1/moderation/2/change-state/published", array(
-      'query' => array('token' => $this->backdropGetToken("1:2:published"))
+      'query' => array('token' => $this->backdropGetToken("1:2:published")),
     ));
     $expected = array(
       'nid' => 1,
@@ -118,7 +134,10 @@ class ContentModerationTransitionTestCase extends ContentModerationTestCase {
     $this->assertTransition($expected);
   }
 
-  function testUnpublishTransition() {
+  /**
+   * Test unpublish transition.
+   */
+  public function testUnpublishTransition() {
     // Create a new node and publish it immediately. Assumes that
     // ContentModerationPublishFromNodeFormTestCase passes.
     $body_name = 'body[' . LANGUAGE_NONE . '][0]';
@@ -155,6 +174,9 @@ class ContentModerationTransitionTestCase extends ContentModerationTestCase {
     $this->assertTransition($expected);
   }
 
+  /**
+   * Test transition from node save.
+   */
   public function testTransitionFromNodeSave() {
     // Create a brand new unpublished node programmatically.
     $edit = array(

@@ -1,11 +1,7 @@
 <?php
-
 /**
  * @file
  * Content moderation.
- *
- * Based on content_moderation.module by eugenmayer.
- * Base version 1.12.2.17 2010/04/18 11:31:29.
  */
 
 /**
@@ -19,7 +15,8 @@ function content_moderation_autoload_info() {
     'content_moderation_handler_filter_state' => 'includes/content_moderation_handler_filter_state.inc',
     'content_moderation_handler_filter_moderated_type' => 'includes/content_moderation_handler_filter_moderated_type.inc',
     'content_moderation_handler_filter_user_can_moderate' => 'includes/content_moderation_handler_filter_user_can_moderate.inc',
-    //'ContentModerationMigrateDestinationHandler' => 'content_moderation.migrate.inc',
+    // 'ContentModerationMigrateDestinationHandler'
+    // => 'content_moderation.migrate.inc',
   );
 }
 
@@ -40,7 +37,7 @@ function content_moderation_config_info() {
 function content_moderation_menu() {
   $items = array();
 
-  // Display a node's moderation history
+  // Display a node's moderation history.
   $items["node/%node/moderation"] = array(
     'title' => 'Moderate',
     'description' => 'Show the content moderation history.',
@@ -49,7 +46,7 @@ function content_moderation_menu() {
     'page arguments' => array(1),
     'access callback' => '_content_moderation_access',
     'access arguments' => array('view history', 1),
-    'file' => 'content_moderation.node.inc'
+    'file' => 'content_moderation.node.inc',
   );
 
   // Unpublishing a live revision.
@@ -62,7 +59,7 @@ function content_moderation_menu() {
     'load arguments' => array(3),
     'access callback' => '_content_moderation_access',
     'access arguments' => array('unpublish', 1),
-    'file' => 'content_moderation.node.inc'
+    'file' => 'content_moderation.node.inc',
   );
 
   // Change the moderation state of a node.
@@ -83,8 +80,9 @@ function content_moderation_menu() {
     'weight' => -1,
   );
 
-  // View the current revision of a node. Redirects to node/%node if the current revision is
-  // published, and to node/%node/draft if the current revision is a draft.
+  // View the current revision of a node. Redirects to node/%node if the current
+  // revision is published, and to node/%node/draft if the current revision is
+  // a draft.
   $items["node/%node/current-revision"] = array(
     'page callback' => 'content_moderation_node_current_view',
     'page arguments' => array(1),
@@ -136,7 +134,8 @@ function content_moderation_menu() {
     'weight' => 10,
   );
 
-  // If the diff module is present, replicate its pages under the moderation tab.
+  // If the diff module is present, replicate its pages under the moderation
+  // tab.
   if (module_exists('diff')) {
     $diff_menu_items  = diff_menu();
 
@@ -148,7 +147,6 @@ function content_moderation_menu() {
     );
 
     $items['node/%node/moderation/diff'] += $diff_menu_items['node/%node/revisions/list'];
-
 
     $items['node/%node/moderation/diff/list'] = array(
       'title' => 'Compare revisions',
@@ -170,7 +168,7 @@ function content_moderation_menu() {
 
 
 /**
- * Implements hook_form_FORM_ID_alter.
+ * Implements hook_form_FORM_ID_alter().
  */
 function content_moderation_form_diff_node_revisions_alter(&$form, &$form_state, $form_id) {
 
@@ -182,21 +180,23 @@ function content_moderation_form_diff_node_revisions_alter(&$form, &$form_state,
 }
 
 /**
- * Redirects the the diff_node_revisions form when the user is under the moderation tab.
+ * Redirects the the diff_node_revisions form when the user is under the
+ * moderation tab.
  */
 function content_moderation_diff_node_revisions_submit($form, &$form_state) {
 
-  // the ids are ordered so the old revision is always on the left
+  // The ids are ordered so the old revision is always on the left.
   $old_vid = min($form_state['values']['old'], $form_state['values']['new']);
   $new_vid = max($form_state['values']['old'], $form_state['values']['new']);
-  $form_state['redirect'] =  'node/'. $form_state['values']['nid'] .'/moderation/diff/view/'. $old_vid .'/'. $new_vid;
+  $form_state['redirect'] = 'node/'. $form_state['values']['nid'] .'/moderation/diff/view/'. $old_vid .'/'. $new_vid;
 }
 
 /**
  * Implements hook_menu_alter().
  */
 function content_moderation_menu_alter(&$items) {
-  // Hijack the node/X/edit page to ensure that the right revision (most current) is displayed.
+  // Hijack the node/X/edit page to ensure that the right revision (most
+  // current) is displayed.
   $items['node/%node/edit']['page callback'] = 'content_moderation_node_edit_page_override';
 
   // Override the node edit menu item title.
@@ -207,7 +207,7 @@ function content_moderation_menu_alter(&$items) {
   $items['node/%node/view']['title callback'] = 'content_moderation_view_tab_title';
   $items['node/%node/view']['title arguments'] = array(1);
 
-  // Redirect node/%node/revisions
+  // Redirect node/%node/revisions.
   $items['node/%node/revisions']['page callback'] = 'content_moderation_node_revisions_redirect';
   $items['node/%node/revisions']['page arguments'] = array(1);
 
@@ -218,9 +218,15 @@ function content_moderation_menu_alter(&$items) {
 
   // For revert and delete operations, use our own access check.
   $items['node/%node/revisions/%/revert']['access callback'] = '_content_moderation_revision_access';
-  $items['node/%node/revisions/%/revert']['access arguments'] = array(1, 'update');
+  $items['node/%node/revisions/%/revert']['access arguments'] = array(
+    1,
+    'update',
+  );
   $items['node/%node/revisions/%/delete']['access callback'] = '_content_moderation_revision_access';
-  $items['node/%node/revisions/%/delete']['access arguments'] = array(1, 'delete');
+  $items['node/%node/revisions/%/delete']['access arguments'] = array(
+    1,
+    'delete',
+  );
 
   // Provide a container administration menu item, if one doesn't already exist.
   if (!isset($items['admin/config/content'])) {
@@ -240,12 +246,12 @@ function content_moderation_menu_alter(&$items) {
  * Redirects 'node/%node/revisions' to node/%node/moderation
  *
  * content_moderation_menu_alter() changes the page callback
- * for 'node/%node/revisions' to this function
+ * for 'node/%node/revisions' to this function.
  *
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
  */
-function content_moderation_node_revisions_redirect($node) {
+function content_moderation_node_revisions_redirect(Node $node) {
   // Redirect nodes subject to moderation.
   if (content_moderation_node_moderated($node) === TRUE) {
     backdrop_goto('node/' . $node->nid . '/moderation');
@@ -291,7 +297,7 @@ function content_moderation_menu_local_tasks_alter(&$data, $router_item, $root_p
   // Get the node for the current menu router.
   if ($node = menu_get_object()) {
     // Here is the reason this hook implementation exists:
-    // If this is a node that gets moderated, don't show 'node/%/revisions'
+    // If this is a node that gets moderated, don't show 'node/%/revisions'.
     if (content_moderation_node_moderated($node) === TRUE) {
       foreach ($data['tabs'][0]['output'] as $key => $value) {
         if (!empty($value['#link']['path']) && $value['#link']['path'] == 'node/%/revisions') {
@@ -317,13 +323,13 @@ function content_moderation_menu_local_tasks_alter(&$data, $router_item, $root_p
  *   revision is a newer, or if the content has no published revision, the
  *   "Edit" tab should be titled "Edit draft".
  *
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
  *
- * @return
+ * @return string
  *   The title for the tab.
  */
-function content_moderation_edit_tab_title($node) {
+function content_moderation_edit_tab_title(Node $node) {
   // Use the normal tab title if the node is not under moderation.
   if (!content_moderation_node_moderated($node)) {
     return t('Edit');
@@ -349,13 +355,13 @@ function content_moderation_edit_tab_title($node) {
  *
  * - Otherwise, it should be titled "View draft".
  *
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
  *
- * @return
+ * @return string
  *   The title for the tab.
  */
-function content_moderation_view_tab_title($node) {
+function content_moderation_view_tab_title(Node $node) {
   // Use the normal tab title if the node is not under moderation.
   if (!content_moderation_node_moderated($node)) {
     return t('View');
@@ -374,7 +380,7 @@ function content_moderation_view_tab_title($node) {
  * Implements hook_admin_paths().
  */
 function content_moderation_admin_paths() {
-  if (variable_get('node_admin_theme')) {
+  if (config_get('system.core', 'admin_theme')) {
     $paths = array(
       'node/*/moderation' => TRUE,
       'node/*/moderation/*/unpublish' => TRUE,
@@ -426,16 +432,17 @@ function content_moderation_permission() {
     'title' => t('View moderation history'),
   );
   $permissions['view moderation messages'] = array(
-    'title' => t('View the moderation messages on a node')
+    'title' => t('View the moderation messages on a node'),
   );
   $permissions['use content_moderation my drafts tab'] = array(
-    'title' => t('Use "My drafts" content tab')
+    'title' => t('Use "My drafts" content tab'),
   );
   $permissions['use content_moderation needs review tab'] = array(
-    'title' => t('Use "Needs review" content tab')
+    'title' => t('Use "Needs review" content tab'),
   );
 
-  // Per-node-type, per-transition permissions. Used by content_moderation_state_allowed().
+  // Per-node-type, per-transition permissions. Used by
+  // content_moderation_state_allowed().
   $node_types = content_moderation_moderate_node_types();
   $transitions = content_moderation_transitions();
 
@@ -445,16 +452,23 @@ function content_moderation_permission() {
 
     // Always set a permission to perform all moderation states.
     $permissions["moderate content from $from_state to $to_state"] = array(
-      'title' => t('Moderate all content from %from_state to %to_state', array('%from_state' => content_moderation_state_label($from_state), '%to_state' => content_moderation_state_label($to_state))),
+      'title' => t('Moderate all content from %from_state to %to_state', array(
+        '%from_state' => content_moderation_state_label($from_state),
+        '%to_state' => content_moderation_state_label($to_state),
+      )),
     );
     // Per-node type permissions are very complex, and should only be used if
     // absolutely needed. For right now, this is hardcoded to OFF. To enable it,
-    // Add this line to settings.php and then reset permissions.
-    //   $conf['content_moderation_per_node_type'] = TRUE;
+    // Add this line to settings.php and then reset permissions:
+    // $settings['content_moderation_per_node_type'] = TRUE;
     if (settings_get('content_moderation_per_node_type', FALSE)) {
       foreach ($node_types as $node_type) {
         $permissions["moderate $node_type state from $from_state to $to_state"] = array(
-          'title' => t('Moderate %node_type state from %from_state to %to_state', array('%node_type' => node_type_get_name($node_type), '%from_state' => content_moderation_state_label($from_state), '%to_state' => content_moderation_state_label($to_state))),
+          'title' => t('Moderate %node_type state from %from_state to %to_state', array(
+            '%node_type' => node_type_get_name($node_type),
+            '%from_state' => content_moderation_state_label($from_state),
+            '%to_state' => content_moderation_state_label($to_state),
+          )),
         );
       }
     }
@@ -477,15 +491,15 @@ function content_moderation_node_access($node, $op, $account) {
 /**
  * Custom access handler for node operations.
  *
- * @param $op
+ * @param string $op
  *   The operation being requested.
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
  *
- * @return
- *   Boolean TRUE or FALSE.
+ * @return bool
+ *   TRUE or FALSE.
  */
-function _content_moderation_access($op, $node) {
+function _content_moderation_access($op, Node $node) {
   global $user;
 
   // If we do not control this node type, deny access.
@@ -520,8 +534,13 @@ function _content_moderation_access($op, $node) {
  * Content Moderation, latest revision in {node_revision} is the current
  * revision. For nodes with a published revision, Content Moderation keeps
  * that revision in {node}, whether or not it is the current revision.
+ *
+ * @param Node $node
+ *   The node being acted on.
+ * @param string $op
+ *   The operation being requested.
  */
-function _content_moderation_revision_access($node, $op) {
+function _content_moderation_revision_access(Node $node, $op) {
   // Normal behavior for unmoderated nodes.
   if (!content_moderation_node_moderated($node)) {
     return _node_revision_access($node, $op);
@@ -562,23 +581,28 @@ function _content_moderation_revision_access($node, $op) {
 /**
  * Checks if a user may make a particular transition on a node.
  *
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
- * @param $state
+ * @param string $state
  *   The new moderation state.
  *
- * @return
+ * @return bool
  *   Booelan TRUE or FALSE.
  */
-function _content_moderation_moderate_access($node, $state) {
+function _content_moderation_moderate_access(Node $node, $state) {
   global $user;
 
   $my_revision = $node->content_moderation['my_revision'];
   $next_states = content_moderation_states_next($my_revision->state, $user, $node);
-  $access = node_access('update', $node, $user)       // the user can edit the node
-          && $my_revision->is_current                 // this is the current revision (no branching the revision history)
-          && (!empty($next_states))                   // there are next states the user may transition to
-          && isset($next_states[$state]);             // this state is in the available next states
+  // Determining node access:
+  // - The user can edit the node.
+  // - This is the current revision (no branching the revision history).
+  // - There are next states the user may transition to.
+  // - This state is in the available next states.
+  $access = node_access('update', $node, $user)
+          && $my_revision->is_current
+          && (!empty($next_states))
+          && isset($next_states[$state]);
 
   // Allow other modules to change our rule set.
   $op = 'moderate';
@@ -593,15 +617,15 @@ function _content_moderation_moderate_access($node, $state) {
  * This is the access callback for node/%node/draft as defined in
  * content_moderation_menu().
  *
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
  *
- * @return
- *   Booelan TRUE or FALSE.
+ * @return bool
+ *   TRUE or FALSE.
  */
-function _content_moderation_access_current_draft($node) {
+function _content_moderation_access_current_draft(Node $node) {
 
-  // This tab should only appear for nodes under moderation
+  // This tab should only appear for nodes under moderation.
   if (!content_moderation_node_moderated($node)) {
     return FALSE;
   }
@@ -625,7 +649,17 @@ function content_moderation_help($path, $arg) {
       return '<p>' . t("These are the states through which a node passes in order to become published. By default, the Content Moderation module provides the states 'Draft,' 'Needs review,' and 'Published'. On this screen you may create, delete and re-order states. Additional states might include 'Legal review,' 'PR review', or any or state your site may need.") . '</p>';
 
     case 'admin/config/content/moderation/transitions':
-      return '<p>' . t('The Content Moderation module keeps track of when a node moves from one state to another. By default, nodes begin in the %draft state and end in the %published state. The transitions on this page control how nodes move from state to state. <a href="@permissions">Permission to perform these transitions is controlled on a role-by-role basis</a>.', array('%draft' => content_moderation_state_label(content_moderation_state_none()), '%published' => content_moderation_state_label(content_moderation_state_published()), '@permissions' => url('admin/people/permissions', array('fragment' => 'module-content_moderation')))) . '</p>';
+      return '<p>' . t('The Content Moderation module keeps track of when a node moves from one state to another. By default, nodes begin in the %draft state and end in the %published state. The transitions on this page control how nodes move from state to state. <a href="@permissions">Permission to perform these transitions is controlled on a role-by-role basis</a>.',
+        array(
+          '%draft' => content_moderation_state_label(content_moderation_state_none()),
+          '%published' => content_moderation_state_label(content_moderation_state_published()),
+          '@permissions' => url('admin/people/permissions',
+            array(
+              'fragment' => 'module-content_moderation',
+            ),
+          ),
+        )
+      ) . '</p>';
 
     case 'admin/config/content/moderation/check-permissions':
       return '<p>' . t("In order to participate in the moderation process, Backdrop users must be granted several node- and moderation- related permissions. This page can help check whether roles have the correct permissions to author, edit, moderate, and publish moderated content.") . '</p>';
@@ -689,8 +723,11 @@ function content_moderation_node_insert($node) {
 
 /**
  * Loads moderation information onto a node being saved.
+ *
+ * @param Node $node
+ *   The node being acted on.
  */
-function content_moderation_set_node_state($node) {
+function content_moderation_set_node_state(Node $node) {
   global $user;
 
   // Set moderation state values.
@@ -750,8 +787,11 @@ function content_moderation_node_update($node) {
 
 /**
  * Saves the moderation history for the node.
+ *
+ * @param Node $node
+ *   The node being acted on.
  */
-function content_moderation_save($node) {
+function content_moderation_save(Node $node) {
   $current_draft = &backdrop_static(__FUNCTION__, 0);
   global $user;
 
@@ -772,7 +812,6 @@ function content_moderation_save($node) {
   if (empty($node->default_revision)) {
     $node->is_current = TRUE;
   }
-
 
   // Build a history record.
   $new_revision = (object) array(
@@ -825,7 +864,7 @@ function content_moderation_save($node) {
  */
 function content_moderation_node_load($nodes, $types) {
   foreach ($nodes as $node) {
-    // Add the node history
+    // Add the node history.
     content_moderation_node_data($node);
   }
 }
@@ -862,8 +901,8 @@ function content_moderation_form_node_type_form_alter(&$form, $form_state) {
   // Get a list of moderation states.
   $options = content_moderation_state_labels();
 
-  // Disable the 'revision' checkbox when the 'moderation' checkbox is checked, so that moderation
-  // can not be enabled unless revisions are enabled.
+  // Disable the 'revision' checkbox when the 'moderation' checkbox is checked,
+  // so that moderation can not be enabled unless revisions are enabled.
   $form['revision']['revision']['revision_enabled']['#states'] = array(
     'disabled' => array(':input[name="moderation_enabled"]' => array('checked' => TRUE)),
   );
@@ -880,8 +919,9 @@ function content_moderation_form_node_type_form_alter(&$form, $form_state) {
     ),
   );
 
-  // Disable the 'moderation' checkbox when the 'revision' checkbox is not checked, so that
-  // revisions can not be turned off without also turning off moderation.
+  // Disable the 'moderation' checkbox when the 'revision' checkbox is not
+  // checked, so that revisions can not be turned off without also turning off
+  // moderation.
   $form['content_moderation']['moderation_enabled'] = array(
     '#type' => 'checkbox',
     '#title' => t('Enable moderation of revisions'),
@@ -890,8 +930,8 @@ function content_moderation_form_node_type_form_alter(&$form, $form_state) {
     '#states' => array(
       'disabled' => array(
         ':input[name="revision_enabled"]' => array(
-          'checked' => FALSE
-        )
+          'checked' => FALSE,
+        ),
       ),
     ),
   );
@@ -948,7 +988,7 @@ function content_moderation_form_node_form_alter(&$form, $form_state) {
     return;
   }
 
-  // Set a moderation state even if there is not one defined
+  // Set a moderation state even if there is not one defined.
   if (isset($form['#node']->content_moderation['current']->state)) {
     $moderation_state = $form['#node']->content_moderation['current']->state;
   }
@@ -956,10 +996,10 @@ function content_moderation_form_node_form_alter(&$form, $form_state) {
     $moderation_state = content_moderation_state_none();
   }
 
-  // Store the current moderation state
+  // Store the current moderation state.
   $form['content_moderation_state_current'] = array(
     '#type' => 'value',
-    '#value' => $moderation_state
+    '#value' => $moderation_state,
   );
 
   // We have a use case where a published node is being edited. This will always
@@ -985,12 +1025,12 @@ function content_moderation_form_node_form_alter(&$form, $form_state) {
       '#type' => 'select',
       '#options' => $states,
       '#description' => t('Set the moderation state for this content.'),
-      '#access' => $states ? TRUE: FALSE,
+      '#access' => $states ? TRUE : FALSE,
     );
 
     // If the user has access to the pre-set default state, make it the default
-    // here.  Otherwise, don't set a default in this case.
-    $default_state = config_get('node.type.' . $form['type']['#value'] , 'settings.content_moderation_default_state');
+    // here. Otherwise, don't set a default in this case.
+    $default_state = config_get('node.type.' . $form['type']['#value'], 'settings.content_moderation_default_state');
     if ($default_state && array_key_exists($default_state, $states)) {
       $form['revision_information']['content_moderation_state_new']['#default_value'] = $default_state;
     }
@@ -999,14 +1039,14 @@ function content_moderation_form_node_form_alter(&$form, $form_state) {
     }
   }
   else {
-    // Store the current moderation state
+    // Store the current moderation state.
     $form['content_moderation_state_new'] = array(
       '#type' => 'value',
-      '#value' => $moderation_state
+      '#value' => $moderation_state,
     );
   }
 
-  // Always create new revisions for nodes that are moderated
+  // Always create new revisions for nodes that are moderated.
   $form['revision_information']['revision'] = array(
     '#type' => 'value',
     '#value' => TRUE,
@@ -1059,18 +1099,18 @@ function content_moderation_node_form_submit($form, &$form_state) {
 /**
  * Overrides the node/%/edit page to ensure the proper revision is shown.
  *
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
- * @return
+ * @return array
  *   A node editing form.
  */
-function content_moderation_node_edit_page_override($node) {
-  // Check to see if this is an existing node
+function content_moderation_node_edit_page_override(Node $node) {
+  // Check to see if this is an existing node.
   if (isset($node->nid)) {
     if (content_moderation_node_type_moderated($node->type)) {
-      // Load the node moderation data
+      // Load the node moderation data.
       content_moderation_node_data($node);
-      // We ONLY edit the current revision
+      // We ONLY edit the current revision.
       $node = content_moderation_node_current_load($node);
     }
   }
@@ -1100,10 +1140,10 @@ function content_moderation_state_none() {
 /**
  * Determines if this content type is set to be moderated
  *
- * @param $type
- *   String, content type name
+ * @param string $type
+ *   Content type name.
  *
- * @return boolean
+ * @return bool
  */
 function content_moderation_node_type_moderated($type) {
   // Is this content even in moderatation?
@@ -1113,12 +1153,13 @@ function content_moderation_node_type_moderated($type) {
 /**
  * Determines if this content is set to be moderated.
  *
- * @param obj $node
- *   Node object
+ * @param Node $node
+ *   Node object.
  *
- * @return boolean
+ * @return bool
+ *   TRUE if content is set to be moderated, FALSE otherwise.
  */
-function content_moderation_node_moderated($node) {
+function content_moderation_node_moderated(Node $node) {
   // Is this content moderated? (individual node check, for extension purposes).
   $access = content_moderation_node_type_moderated($node->type);
   backdrop_alter('content_moderation_node_moderated', $access, $node);
@@ -1127,12 +1168,15 @@ function content_moderation_node_moderated($node) {
 
 /**
  * Lists content types that are moderated
+ *
+ * @return array
+ *   List of content types that are moderated.
  */
 function content_moderation_moderate_node_types() {
   $types = node_type_get_types();
   $result = array();
   foreach ($types as $type) {
-    // Is this content even in moderatation?
+    // Is this content even in moderation?
     if (content_moderation_node_type_moderated($type->type)) {
       $result[] = $type->type;
     }
@@ -1152,17 +1196,17 @@ function content_moderation_moderate_node_types() {
  * Note that we do not use content-type specific moderation by default. To
  * enable that, see the instructions in content_moderation_permission().
  *
- * @param $account
+ * @param User $account
  *   The user account being checked.
- * @param $from_state
+ * @param string $from_state
  *   The original moderation state.
- * @param $to_state
+ * @param string $to_state
  *   The new moderation state.
  *
- * @return
- *   Bollean TRUE or FALSE.
+ * @return bool
+ *   TRUE or FALSE.
  */
-function content_moderation_state_allowed($account, $from_state, $to_state, $node_type) {
+function content_moderation_state_allowed(User $account, $from_state, $to_state, $node_type) {
   // Allow super-users to moderate all content.
   if (user_access("bypass content moderation", $account)) {
     return TRUE;
@@ -1185,10 +1229,10 @@ function content_moderation_state_allowed($account, $from_state, $to_state, $nod
 /**
  * Adds current and live revision data to a node.
  *
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
  */
-function content_moderation_node_data($node) {
+function content_moderation_node_data(Node $node) {
   // Make sure that this node type is moderated.
   if (!content_moderation_node_type_moderated($node->type)) {
     return;
@@ -1333,16 +1377,16 @@ function content_moderation_node_data($node) {
 /**
  * Utility function to load the current revision of a node.
  *
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
  *
- * @return
+ * @return Node
  *   The current node according to moderation.
  */
-function content_moderation_node_current_load($node) {
+function content_moderation_node_current_load(Node $node) {
   // Is there a current revision?
   if (isset($node->content_moderation['current']->vid)) {
-    // Ensure that we will return the current revision
+    // Ensure that we will return the current revision.
     if ($node->vid != $node->content_moderation['current']->vid) {
       $node = node_load($node->nid, $node->content_moderation['current']->vid);
     }
@@ -1357,13 +1401,13 @@ function content_moderation_node_current_load($node) {
  * This is encapsulated so that changes to how the moderation data is stored
  * will not impact the API.
  *
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
  *
- * @return
+ * @return Node
  *   The node object of the live revision.
  */
-function content_moderation_node_live_load($node) {
+function content_moderation_node_live_load(Node $node) {
   // Is there a live revision of this node?
   if (isset($node->content_moderation['published']->vid)) {
     return node_load($node->nid, $node->content_moderation['published']->vid);
@@ -1374,13 +1418,13 @@ function content_moderation_node_live_load($node) {
 /**
  * Utility function to determine if this node is in the live state.
  *
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
  *
- * @return
- *   Boolean TRUE if this is the current revision. FALSE if not.
+ * @return bool
+ *   TRUE if this is the current revision. FALSE if not.
  */
-function content_moderation_node_is_current($node) {
+function content_moderation_node_is_current(Node $node) {
   if (isset($node->content_moderation['published']->vid) && isset($node->content_moderation['current']->vid)) {
     if ($node->content_moderation['published']->vid == $node->content_moderation['current']->vid) {
       return TRUE;
@@ -1394,8 +1438,8 @@ function content_moderation_node_is_current($node) {
 /**
  * Get a list of all moderation states.
  *
- * @return
- *   An array of state objects, keyed by state name and ordered by weight. Each
+ * @return array
+ *   An array of state arrays, keyed by state name and ordered by weight. Each
  *   state object has name, description, and weight properties.
  */
 function content_moderation_states() {
@@ -1411,7 +1455,7 @@ function content_moderation_states() {
 /**
  * Generate an array of moderation states suitable for use as Form API #options.
  *
- * @return
+ * @return array
  *   An array of states with machine names as keys and labels as values.
  */
 function content_moderation_state_labels() {
@@ -1421,7 +1465,12 @@ function content_moderation_state_labels() {
     $labels = array();
     foreach (content_moderation_states() as $machine_name => $state) {
       if (module_exists('i18n_string')) {
-        $labels[$machine_name] = i18n_string_translate(array('content_moderation', 'moderation_state', $machine_name, 'label'), $state['label']);
+        $labels[$machine_name] = i18n_string_translate(array(
+          'content_moderation',
+          'moderation_state',
+          $machine_name,
+          'label',
+        ), $state['label']);
       }
       else {
         $labels[$machine_name] = $state['label'];
@@ -1466,9 +1515,9 @@ function content_moderation_i18n_string_list($group) {
 /**
  * Get the label for a state based on its machine name.
  *
- * @param type $machine_name
+ * @param string $machine_name
  *   The machine name of the state.
- * @return
+ * @return string
  *   An unsanitized label or an empty string if the state does not exist.
  */
 function content_moderation_state_label($machine_name) {
@@ -1479,10 +1528,11 @@ function content_moderation_state_label($machine_name) {
 /**
  * Get information about a single moderation state.
  *
- * @param type $machine_name
+ * @param string $machine_name
  *   The machine name of the state.
- * @return
- *   An object of information about the state or FALSE if the state does not exist.
+ * @return array
+ *   An object of information about the state or FALSE if the state does not
+ *   exist.
  */
 function content_moderation_state_load($machine_name) {
   $states = content_moderation_states();
@@ -1495,10 +1545,11 @@ function content_moderation_state_load($machine_name) {
 /**
  * Get information about a single moderation state.
  *
- * @param type $machine_name
+ * @param string $machine_name
  *   The machine name of the state.
- * @return
- *   An object of information about the state or FALSE if the state does not exist.
+ * @return array
+ *   An array of information about the state or FALSE if the state does not
+ *   exist.
  */
 function content_moderation_transition_load($machine_name) {
   $transitions = content_moderation_transitions();
@@ -1511,7 +1562,7 @@ function content_moderation_transition_load($machine_name) {
 /**
  * Save a new or existing moderation state.
  *
- * Moderation state names must be unique, so saving a state object with a
+ * Moderation state names must be unique, so saving a state array with a
  * non-unique name updates the existing state.
  *
  * Invokes hook_content_moderation_state_save().
@@ -1521,7 +1572,7 @@ function content_moderation_transition_load($machine_name) {
  *
  * @see hook_content_moderation_state_save()
  */
-function content_moderation_state_save($state) {
+function content_moderation_state_save(array $state) {
   $config = config('content_moderation.states');
   $config->set($state['name'], $state);
   $config->save();
@@ -1545,10 +1596,10 @@ function content_moderation_state_save($state) {
  * @param array $state
  *   An array with at least a name property.
  *
- * @see hook_content_moderation_state_delete().
- * @see hook_content_moderation_transition_delete().
+ * @see hook_content_moderation_state_delete()
+ * @see hook_content_moderation_transition_delete()
  */
-function content_moderation_state_delete($state) {
+function content_moderation_state_delete(array $state) {
   foreach (module_implements('content_moderation_state_delete') as $module) {
     // Don't call this function! That would lead to infinite recursion.
     if ($module !== 'content_moderation') {
@@ -1573,7 +1624,7 @@ function content_moderation_state_delete($state) {
 /**
  * Get a list of all moderation state transitions.
  *
- * @return
+ * @return array
  *   An array of transition objects, each with from_name and to_name properties
  *   that reference moderation states. The array is ordered by the weight of the
  *   'from' states, then by the weight of the 'to' states.
@@ -1598,7 +1649,7 @@ function content_moderation_transitions() {
  *
  * @see hook_content_moderation_transition_save()
  */
-function content_moderation_transition_save($transition) {
+function content_moderation_transition_save(array $transition) {
   $config = config('content_moderation.transitions');
   $config->set($transition['name'], $transition);
   $config->save();
@@ -1615,15 +1666,15 @@ function content_moderation_transition_save($transition) {
 /**
  * Deletes a moderation state transition.
  *
- * Invoke hook_workbenech_moderation_tranisiton_delete().
+ * Invoke hook_content_moderation_transiton_delete().
  *
- * @param $transition
- *   An object with from_name and to_name properties that reference moderation
+ * @param array $transition
+ *   An array with from_name and to_name properties that reference moderation
  *   states.
  *
- * @see hook_content_moderation_transition_delete().
+ * @see hook_content_moderation_transition_delete()
  */
-function content_moderation_transition_delete($transition) {
+function content_moderation_transition_delete(array $transition) {
   foreach (module_implements('content_moderation_transition_delete') as $module) {
     // Don't call this function! That would lead to infinite recursion.
     if ($module !== 'content_moderation') {
@@ -1649,11 +1700,11 @@ function content_moderation_transition_delete($transition) {
  * @param Node $node
  *   The node object being acted upon.
  *
- * @return
+ * @return array
  *   If the user may moderate a change, return an array of possible state
  *   changes. Otherwise, return FALSE.
  */
-function content_moderation_states_next($current_state, $account, $node) {
+function content_moderation_states_next($current_state, User $account, Node $node) {
   $states = FALSE;
 
   // Make sure we have a current state.
@@ -1714,12 +1765,12 @@ function content_moderation_states_next($current_state, $account, $node) {
  * @see content_moderation_menu()
  * @see content_moderation_node_update()
  *
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
- * @param $state
+ * @param string $state
  *   The new moderation state requested.
  */
-function content_moderation_moderate($node, $state) {
+function content_moderation_moderate(Node $node, $state) {
   // Set the current and new moderation state value.
   $node->original = $node;
 
@@ -1742,12 +1793,12 @@ function content_moderation_moderate($node, $state) {
 /**
  * Helper function to redirect after a state change submission.
  *
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
- * @param $state
+ * @param string $state
  *   The new moderation state requested.
  */
-function content_moderation_moderate_callback($node, $state) {
+function content_moderation_moderate_callback(Node $node, $state) {
   if (!isset($_GET['token']) || !backdrop_valid_token($_GET['token'], "{$node->nid}:{$node->vid}:$state")) {
     return MENU_ACCESS_DENIED;
   }
@@ -1759,15 +1810,15 @@ function content_moderation_moderate_callback($node, $state) {
 /**
  * Generates a list of links to available moderation actions.
  *
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
- * @param $url_options
+ * @param array $url_options
  *   An array of options to pass, following the url() function syntax.
  *
- * @return
+ * @return array
  *   A list of links to display with the revision.
  */
-function content_moderation_get_moderation_links($node, $url_options = array()) {
+function content_moderation_get_moderation_links(Node $node, array $url_options = array()) {
   // Make sure that this node is moderated.
   if (!content_moderation_node_moderated($node)) {
     return;
@@ -1796,13 +1847,13 @@ function content_moderation_get_moderation_links($node, $url_options = array()) 
  *
  * The caller of this form needs to check whether the node is in moderation.
  *
- * @param $node
+ * @param Node $node
  *   The node being acted upon.
  *
- * @return $form
+ * @return array
  *   A Backdrop Forms API array.
  */
-function content_moderation_moderate_form($form, &$form_state, $node, $destination = NULL) {
+function content_moderation_moderate_form($form, &$form_state, Node $node, $destination = NULL) {
   global $user;
   $form = array();
 
@@ -1842,7 +1893,15 @@ function content_moderation_moderate_form($form, &$form_state, $node, $destinati
   return $form;
 }
 
-function _content_moderation_default_next_state($current_state, $next_states) {
+/**
+ * Default next state
+ *
+ * @param string $current_state
+ *   The current state.
+ * @param array $next_states
+ *   List of the next states.
+ */
+function _content_moderation_default_next_state($current_state, array $next_states) {
   $states = content_moderation_states();
   foreach ($states as $state_name => $state) {
     if ($state['weight'] > $states[$current_state]['weight'] && isset($next_states[$state_name])) {
@@ -1851,6 +1910,11 @@ function _content_moderation_default_next_state($current_state, $next_states) {
   }
 }
 
+/**
+ * Validation handler
+ *
+ * @see content_moderation_moderate_form()
+ */
 function content_moderation_moderate_form_validate($form, &$form_state) {
   // Make sure that the revision that was shown to the user is still the current
   // revision before changing the current revision's state.
@@ -1863,6 +1927,11 @@ function content_moderation_moderate_form_validate($form, &$form_state) {
   }
 }
 
+/**
+ * Submit handler
+ *
+ * @see content_moderation_moderate_form()
+ */
 function content_moderation_moderate_form_submit($form, &$form_state) {
   if (_content_moderation_moderate_access($form_state['values']['node'], $form_state['values']['state'])) {
     content_moderation_moderate(node_load($form_state['values']['node']->nid, $form_state['values']['node']->vid), $form_state['values']['state']);
@@ -1895,13 +1964,13 @@ function content_moderation_moderate_form_submit($form, &$form_state) {
  *
  * @see content_moderation_set_message()
  *
- * @param $context
- *   A string, either 'view' or 'edit'.
- * @param $node
- *   A node object. The current menu object will be used if it is a node and
- *   this variable was not set.
+ * @param string $context
+ *   Either 'view' or 'edit'.
+ * @param Node|null $node
+ *   A node object or NULL. The current menu object will be used if it is a node
+ *   and this variable was not set.
  */
-function content_moderation_messages($context, $node = NULL) {
+function content_moderation_messages($context, Node $node = NULL) {
   global $user;
   static $content_moderation_messages_set;
 
@@ -1979,18 +2048,26 @@ function content_moderation_messages($context, $node = NULL) {
       // Get previous and next revision ids.
       $args = array(':nid' => $node->nid, ':vid' => $node->vid);
       if ($prev_vid = db_query_range("SELECT nr.vid FROM {node_revision} nr WHERE nr.nid = :nid AND nr.vid < :vid ORDER BY nr.vid DESC", 0, 1, $args)->fetchField()) {
-        $links[$prev_vid] = array('title' => t('Previous revision'), 'href' => "node/{$node->nid}/revisions/{$prev_vid}/view");
+        $links[$prev_vid] = array(
+          'title' => t('Previous revision'),
+          'href' => "node/{$node->nid}/revisions/{$prev_vid}/view",
+        );
       }
       if ($next_vid = db_query_range("SELECT nr.vid FROM {node_revision} nr WHERE nr.nid = :nid AND nr.vid > :vid ORDER BY nr.vid ASC", 0, 1, $args)->fetchField()) {
-        $links[$next_vid] = array('title' => t('Next revision'), 'href' => "node/{$node->nid}/revisions/{$next_vid}/view");
+        $links[$next_vid] = array(
+          'title' => t('Next revision'),
+          'href' => "node/{$node->nid}/revisions/{$next_vid}/view",
+        );
       }
 
-      // If the current revision is next or previous, use the "node/%node/current-revision" path.
+      // If the current revision is next or previous, use the
+      // "node/%node/current-revision" path.
       if (($current = $state['current']->vid) && isset($links[$current])) {
         $links[$current]['href'] = "node/{$node->nid}/current-revision";
       }
 
-      // If the published revision is next or previous, use the "node/%node" path.
+      // If the published revision is next or previous, use the "node/%node"
+      // path.
       if (isset($state['published']) && ($published = $state['published']->vid) && isset($links[$published])) {
         $links[$published]['href'] = "node/{$node->nid}";
       }
@@ -2044,18 +2121,19 @@ function content_moderation_messages($context, $node = NULL) {
 /**
  * Prevent multiple moderation status.
  *
- * This function is a helper called from content_moderation_messages(). If the same node
- *  node_view() called multiple times in a page request there could be duplicate messages.
+ * This function is a helper called from content_moderation_messages(). If the
+ * same node node_view() called multiple times in a page request there could be
+ * duplicate messages.
  *
- * @param $context
- *   A string, either 'view' or 'edit'. Currently only "view" is implemented.
- * @param $node
+ * @param string $context
+ *   Either 'view' or 'edit'. Currently only "view" is implemented.
+ * @param Node $node
  *   A node object for which content_moderation_messages() is adding messages.
- * @return BOOL
- *  TRUE or FALSE for whether the given node has had messages added in the given
- *  context.
+ * @return bool
+ *   TRUE or FALSE for whether the given node has had messages added in the
+ *   given context.
  */
-function content_moderation_messages_shown($context, $node) {
+function content_moderation_messages_shown($context, Node $node) {
   $shown = &backdrop_static(__FUNCTION__);
   if (!empty($shown[$context][$node->nid])) {
     return TRUE;
@@ -2076,10 +2154,10 @@ function content_moderation_messages_shown($context, $node) {
  * @param array $options
  *   Link options, following the format of url().
  *
- * @return
- *   A backdrop-formatted HTML link.
+ * @return string
+ *   A Backdrop-formatted HTML link.
  */
-function content_moderation_access_link($text, $internal_path, $options = array()) {
+function content_moderation_access_link($text, $internal_path, array $options = array()) {
   if (($item = menu_get_item($internal_path)) && !empty($item['access'])) {
     return l($text, $internal_path, $options);
   }
@@ -2088,7 +2166,8 @@ function content_moderation_access_link($text, $internal_path, $options = array(
 /**
  * Stores status messages for delivery.
  *
- * This function stores up moderation messages to be passed on to content_moderation_content_block().
+ * This function stores up moderation messages to be passed on to
+ * content_moderation_content_block().
  *
  * This function uses a static variable so that function can be called more than
  * once and the array built up.
@@ -2096,13 +2175,13 @@ function content_moderation_access_link($text, $internal_path, $options = array(
  * @see content_moderation_content_block()
  * @see content_moderation_messages()
  *
- * @param $new_messages
+ * @param array $new_messages
  *   An array of messages to be added to the block.
  *
- * @return
+ * @return array
  *   An array of messages to be added to the block.
  */
-function content_moderation_set_message($new_messages = array()) {
+function content_moderation_set_message(array $new_messages = array()) {
   static $messages = array();
   $messages = array_merge($messages, $new_messages);
   return $messages;
@@ -2116,7 +2195,10 @@ function content_moderation_set_message($new_messages = array()) {
 function content_moderation_content_block() {
   $output = array();
   foreach (content_moderation_set_message() as $message) {
-    $output[] = t('!label: <em>!message</em>', array('!label' => $message['label'], '!message' => $message['message']));
+    $output[] = t('!label: <em>!message</em>', array(
+      '!label' => $message['label'],
+      '!message' => $message['message'],
+    ));
   }
 
   return $output;
@@ -2124,7 +2206,7 @@ function content_moderation_content_block() {
 
 
 /**
- * Implementation of hook_content_moderation_transition().
+ * Implements hook_content_moderation_transition().
  */
 function content_moderation_content_moderation_transition($node, $previous_state, $new_state) {
   if (module_exists('trigger')) {
@@ -2157,13 +2239,16 @@ function content_moderation_trigger_info() {
   // Add a trigger for each transition.
   foreach ($transitions as $transition_definition) {
     $transition_string = 'wmt_' . $transition_definition['from_name'] . '__' . $transition_definition['to_name'];
-    // Hash this string if it's longer than the db field size
+    // Hash this string if it's longer than the db field size.
     if (strlen($transition_string) > 32) {
       $transition_string = md5($transition_string);
     }
 
     $output['content_moderation'][$transition_string] = array(
-      'label' => t('Transition from the state %from_name to %to_name occurs.', array('%from_name' => $transition_definition['from_name'], '%to_name' => $transition_definition['to_name'])),
+      'label' => t('Transition from the state %from_name to %to_name occurs.', array(
+        '%from_name' => $transition_definition['from_name'],
+        '%to_name' => $transition_definition['to_name'],
+      )),
     );
   }
 
@@ -2171,21 +2256,22 @@ function content_moderation_trigger_info() {
 }
 
 /**
- * transition trigger: Run actions associated with an arbitrary event.
+ * Transition trigger: Run actions associated with an arbitrary event.
  *
  * This function is executed after a transition takes place.
  *
- * @param $node
+ * @param Node $node
  *   The node undergoing the transition.
- * @param $from_state
+ * @param string $from_state
  *   The previous content moderation state.
- * @param $state
+ * @param string $state
  *   The new content moderation state.
  */
-function content_moderation_trigger_transition($node, $from_state, $state, $a3 = NULL, $a4 = NULL) {
-  // Ask the trigger module for all actions enqueued for the 'transition' trigger.
+function content_moderation_trigger_transition(Node $node, $from_state, $state, $a3 = NULL, $a4 = NULL) {
+  // Ask the trigger module for all actions enqueued for the 'transition'
+  // trigger.
   $aids = trigger_get_assigned_actions('content_moderation_transition');
-  // prepare a basic context, indicating group and "hook", and call all the
+  // Prepare a basic context, indicating group and "hook", and call all the
   // actions with this context as arguments.
   $context = array(
     'group' => 'content_moderation',
@@ -2195,10 +2281,10 @@ function content_moderation_trigger_transition($node, $from_state, $state, $a3 =
   );
   actions_do(array_keys($aids), $node, $context, $a3, $a4);
 
-
-  // Ask the trigger module for all actions enqueued for this specific transition.
+  // Ask the trigger module for all actions enqueued for this specific
+  // transition.
   $transition_string = 'wmt_' . $from_state . '__' . $state;
-  // Hash this string if it's longer than the db field size
+  // Hash this string if it's longer than the db field size.
   if (strlen($transition_string) > 32) {
     $transition_string = md5($transition_string);
   }
@@ -2217,7 +2303,12 @@ function content_moderation_action_info() {
     'type' => 'node',
     'label' => t('Set moderation state'),
     'configurable' => TRUE,
-    'triggers' => array('node_presave', 'node_insert', 'node_update', 'content_moderation_transition'),
+    'triggers' => array(
+      'node_presave',
+      'node_insert',
+      'node_update',
+      'content_moderation_transition',
+    ),
   );
 
   // Get all content transitions.
@@ -2226,7 +2317,7 @@ function content_moderation_action_info() {
   // Add a trigger for each transition.
   foreach ($transitions as $transition_definition) {
     $transition_string = 'wmt_' . $transition_definition['from_name'] . '__' . $transition_definition['to_name'];
-    // Hash this string if it's longer than the db field size
+    // Hash this string if it's longer than the db field size.
     if (strlen($transition_string) > 32) {
       $transition_string = md5($transition_string);
     }
@@ -2238,7 +2329,8 @@ function content_moderation_action_info() {
 }
 
 /**
- * Form builder; Prepare a form for possible moderation states.
+ * Form builder.
+ * Prepare a form for possible moderation states.
  */
 function content_moderation_set_state_action_form($context) {
   $form = array();
@@ -2262,10 +2354,11 @@ function content_moderation_set_state_action_submit($form, $form_state) {
 /**
  * Changes the moderation state for a given node.
  */
-function content_moderation_set_state_action($node, $context) {
+function content_moderation_set_state_action(Node $node, $context) {
   if (empty($context['state'])) return;
 
-  // Check access to perform this moderation, on the latest revision of the node
+  // Check access to perform this moderation, on the latest revision of the
+  // node.
   $node = content_moderation_node_current_load($node);
   if (_content_moderation_moderate_access($node, $context['state'])) {
     $node->content_moderation_state_new = $context['state'];
@@ -2273,7 +2366,10 @@ function content_moderation_set_state_action($node, $context) {
     $node->log = "Bulk moderation state change.";
     node_save($node);
 
-    watchdog('action', 'Change node %nid moderation state to %state.', array('%nid' => $node->nid, '%state' => $context['state']));
+    watchdog('action', 'Change node %nid moderation state to %state.', array(
+      '%nid' => $node->nid,
+      '%state' => $context['state'],
+    ));
   }
   else {
     backdrop_set_message(t('You do not have permission to moderate %node', array('%node' => $node->title)), 'warning');
@@ -2281,7 +2377,7 @@ function content_moderation_set_state_action($node, $context) {
 }
 
 /**
- * Implement hook_migrate_api().
+ * Implements hook_migrate_api().
  */
 function content_moderation_migrate_api() {
   return array('api' => 2);
@@ -2299,19 +2395,19 @@ function content_moderation_transition_access($op, $profile = NULL, $account = N
  *
  * Manipulate a node on export.
  *
- * @param &$node
+ * @param Node &$node
  *   The node to alter.
- * @param $original_node
+ * @param Node $original_node
  *   The unaltered node.
  */
-function content_moderation_node_export_node_alter(&$node, $original_node) {
+function content_moderation_node_export_node_alter(Node &$node, Node $original_node) {
 
-  // Don't proceed if moderation is not enabled on this content type
+  // Don't proceed if moderation is not enabled on this content type.
   if (!content_moderation_node_type_moderated($node->type)) {
     return;
   }
 
-  //Set the current state to be the same as the current revision's state.
+  // Set the current state to be the same as the current revision's state.
   if(!isset($node->content_moderation_state_current) && isset($node->content_moderation) && isset($node->content_moderation['current'])){
     $node->content_moderation_state_current = $node->content_moderation['current']->state;
   }
@@ -2326,7 +2422,8 @@ function content_moderation_node_export_node_alter(&$node, $original_node) {
     $node->content_moderation_state_new = $node->content_moderation_state_current;
   }
 
-  //Node revisions will not be exported so remove moderation states tied to revisions
+  // Node revisions will not be exported so remove moderation states tied to
+  // revisions.
   unset($node->content_moderation);
 }
 
@@ -2334,7 +2431,7 @@ function content_moderation_node_export_node_alter(&$node, $original_node) {
  * Implements hook_node_export_node_import_alter().
  */
 function content_moderation_node_export_node_import_alter(&$node, $original_node, $save) {
-  // Don't proceed if moderation is not enabled on this content type
+  // Don't proceed if moderation is not enabled on this content type.
   if (!content_moderation_node_type_moderated($node->type)) {
     return;
   }

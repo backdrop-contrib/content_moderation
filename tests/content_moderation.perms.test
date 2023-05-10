@@ -1,16 +1,23 @@
 <?php
-
 /**
  * @file
  * Permissions-related tests for content_moderation.module.
  */
 
+require_once 'content_moderation.test';
+
+/**
+ * Content moderation permissions tests.
+ */
 class ContentModerationPermsTestCase extends BackdropWebTestCase {
   protected $content_type;
   protected $editor_user;
   protected $author_user;
 
-  function setUp($modules = array()) {
+  /**
+   * @inheritdoc
+   */
+  public function setUp($modules = array()) {
     $modules = array_merge($modules, array('content_moderation'));
     parent::setUp($modules);
 
@@ -21,7 +28,8 @@ class ContentModerationPermsTestCase extends BackdropWebTestCase {
     $config_node_type->set('settings.moderation_enabled', 1);
     $config_node_type->set('settings.revision_enabled', 1);
     $config_node_type->save();
-    // The editor should be able to view all unpublished content, even without authoring perms.
+    // The editor should be able to view all unpublished content, even without
+    // authoring perms.
     $editor_permissions = array(
       0 => 'view all unpublished content',
     );
@@ -34,20 +42,23 @@ class ContentModerationPermsTestCase extends BackdropWebTestCase {
   }
 }
 
+/**
+ * Content moderation view unpublished tests.
+ */
 class ContentModerationViewUnpublishedTestCase extends ContentModerationPermsTestCase {
 
-  public static function getInfo() {
-    return array(
-
-    );
-  }
-
-  function setUp($modules = array()) {
+  /**
+   * @inheritdoc
+   */
+  public function setUp($modules = array()) {
     parent::setUp($modules);
     $this->backdropLogin($this->author_user);
   }
 
-  function testViewUnpublished() {
+  /**
+   * Test view unpublished.
+   */
+  public function testViewUnpublished() {
     $is_moderated = content_moderation_node_type_moderated($this->content_type);
     $this->assertTrue($is_moderated, t('The content type is moderated.'));
 

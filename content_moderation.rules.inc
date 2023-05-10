@@ -1,4 +1,8 @@
 <?php
+/**
+ * @file
+ *   Support for Rules module.
+ */
 
 /**
  * Implements hook_rules_file_info().
@@ -111,7 +115,7 @@ function content_moderation_rules_event_info() {
 }
 
 /**
- * Implements hook_rules_action_info() on behalf of the content_moderation module.
+ * Implements hook_rules_action_info().
  */
 function content_moderation_rules_action_info() {
   $items = array();
@@ -203,13 +207,13 @@ function content_moderation_rules_action_info() {
 /**
  * Condition: Check if the content is using content moderation.
  *
- * @param $node
- *   A node object
+ * @param Node $node
+ *   A node object.
  *
- * @return
+ * @return bool
  *   TRUE/FALSE depending on if the content is using content moderation.
  */
-function content_access_rules_condition_content_is_using_content_moderation($node) {
+function content_access_rules_condition_content_is_using_content_moderation(Node $node) {
   if (!is_object($node)) {
     return FALSE;
   }
@@ -220,13 +224,13 @@ function content_access_rules_condition_content_is_using_content_moderation($nod
 /**
  * Condition: Check if the content is live revision
  *
- * @param $node
- *   A node object
+ * @param Node $node
+ *   A node object.
  *
- * @return
+ * @return bool
  *   TRUE/FALSE depending on if the content is live revision.
  */
-function content_moderation_rules_condition_content_is_live_revision($node) {
+function content_moderation_rules_condition_content_is_live_revision(Node $node) {
   if (!is_object($node)) {
     return FALSE;
   }
@@ -237,16 +241,16 @@ function content_moderation_rules_condition_content_is_live_revision($node) {
 /**
  * Condition: Check if content moderation state matched selected state.
  *
- * @param $node
- *   A node object
+ * @param Node $node
+ *   A node object.
  *
- * @param $moderation_state
- *   The desired moderation state to compare with
+ * @param string $moderation_state
+ *   The desired moderation state to compare with.
  *
- * @return
- *  TRUE/FALSE depending on if the nodes current state matches selected state.
+ * @return bool
+ *   TRUE/FALSE depending on if the nodes current state matches selected state.
  */
-function content_moderation_rules_condition_contents_current_state($node, $moderation_state) {
+function content_moderation_rules_condition_contents_current_state(Node $node, $moderation_state) {
   if (!is_object($node)) {
     return FALSE;
   }
@@ -263,16 +267,16 @@ function content_moderation_rules_condition_contents_current_state($node, $moder
 /**
  * Condition: Check if content moderation previous state matched selected state.
  *
- * @param $node
- *   A node object
+ * @param Node $node
+ *   A node object.
  *
- * @param $moderation_state
- *   The desired moderation state to compare with
+ * @param string $moderation_state
+ *   The desired moderation state to compare with.
  *
- * @return
- *  TRUE/FALSE depending on if the nodes previous state matches selected state.
+ * @return bool
+ *   TRUE/FALSE depending on if the nodes previous state matches selected state.
  */
-function content_moderation_rules_condition_contents_previous_state($node, $moderation_state) {
+function content_moderation_rules_condition_contents_previous_state(Node $node, $moderation_state) {
   if (!is_object($node)) {
     return FALSE;
   }
@@ -287,22 +291,27 @@ function content_moderation_rules_condition_contents_previous_state($node, $mode
 /**
  * Action: Change the moderation state of a given node.
  *
- * $param $node
- *   A node object
+ * @param Node $node
+ *   A node object.
  *
- * $param $moderation_state
+ * @param string $moderation_state
  *   The desired moderation state to assign.
 
- * $param $force_transition
- *   If set to TRUE, then the transition change will be allowed regardless of permissions and allowed transition flow.
- *   If set to FALSE, then the transition only changes if all transition change requirements are met.
+ * @param bool $force_transition
+ *   If set to TRUE, then the transition change will be allowed regardless of
+ *   permissions and allowed transition flow.
+ *   If set to FALSE, then the transition only changes if all transition change
+ *   requirements are met.
  *
- * @return
+ * @return array
  *   An array containing the node object stored in the key called 'node'.
  */
-function content_moderation_set_state_rules_action($node, $moderation_state, $force_transition) {
+function content_moderation_set_state_rules_action(Node $node, $moderation_state, $force_transition) {
   if (is_object($node) && !empty($moderation_state)){
-    actions_do('content_moderation_set_state_action', $node, array('state' => $moderation_state, 'force_transition' => $force_transition));
+    actions_do('content_moderation_set_state_action', $node, array(
+      'state' => $moderation_state,
+      'force_transition' => $force_transition,
+    ));
   }
 
   return array('node' => $node);
@@ -311,18 +320,19 @@ function content_moderation_set_state_rules_action($node, $moderation_state, $fo
 /**
  * Action: Set the moderation state on a node object.
  *
- * This should only be used in a process where this node object will later be saved.
+ * This should only be used in a process where this node object will later be
+ * saved.
  *
- * $param $node
- *   A node object
+ * @param Node $node
+ *   A node object.
  *
- * $param $moderation_state
+ * @param string $moderation_state
  *   The desired moderation state to assign.
  *
- * @return
+ * @return array
  *   An array containing the node object stored in the key called 'node'.
  */
-function content_moderation_set_state_during_save_rules_action($node, $moderation_state) {
+function content_moderation_set_state_during_save_rules_action(Node $node, $moderation_state) {
 
   $node->content_moderation_state_new = $moderation_state;
 
@@ -332,13 +342,14 @@ function content_moderation_set_state_during_save_rules_action($node, $moderatio
 /**
  * Action: Loads the content access states into a variable.
  *
- * $param $node
- *   A node object
+ * @param Node $node
+ *   A node object.
  *
- * @return
- *   An array containing the node object stored in the key called 'node' and an array containing the access control states for the given node.
+ * @return array
+ *   An array containing the node object stored in the key called 'node' and an
+ *   array containing the access control states for the given node.
  */
-function content_moderation_load_current_state_rules_action($node) {
+function content_moderation_load_current_state_rules_action(Node $node) {
   $state = '';
 
   if (is_object($node) && property_exists($node, 'content_moderation') && isset($node->content_moderation['current'])){
@@ -351,13 +362,13 @@ function content_moderation_load_current_state_rules_action($node) {
 /**
  * Action: Loads the current node revision.
  *
- * $param $node
- *   A node object
+ * @param Node $node
+ *   A node object.
  *
- * @return
+ * @return array
  *   A loaded node revision.
  */
-function content_moderation_load_current_revision_rules_action($node) {
+function content_moderation_load_current_revision_rules_action(Node $node) {
   $node_revision = content_moderation_node_current_load($node);
   return array('node' => $node, 'node_revision' => $node_revision);
 }

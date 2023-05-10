@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @file
  * Install file for the Content Moderation module.
@@ -36,7 +35,7 @@ function content_moderation_schema() {
       'hid' => array(
         'description' => 'Node history entry key.',
         'type' => 'serial',
-        'not null' => TRUE
+        'not null' => TRUE,
       ),
       'vid' => array(
         'description' => 'Node revision id. Foreign key to {node_revision}',
@@ -123,7 +122,8 @@ function content_moderation_update_1000() {
   update_variable_del('workbench_moderation_nodedraft_disabled');
   update_variable_del('workbench_moderation_show_revision_navigation');
 
-  // Get all node types. Loop through them and delete workbench-related variables.
+  // Get all node types. Loop through them and delete workbench-related
+  // variables.
   $types = node_type_get_types();
   foreach ($types as $type_object) {
     $type = $type_object->type;
@@ -163,7 +163,7 @@ function content_moderation_update_1001() {
 }
 
 /**
- * Move workbench_moderation_transitions configuration from table to config files.
+ * Move workbench_moderation_transitions from table to config files.
  */
 function content_moderation_update_1002() {
   if (db_table_exists('workbench_moderation_transitions')) {

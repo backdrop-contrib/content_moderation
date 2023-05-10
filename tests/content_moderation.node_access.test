@@ -1,14 +1,21 @@
 <?php
-
 /**
  * @file
  * Node Access tests for content_moderation.module.
  */
 
+require_once 'content_moderation.test';
+
+/**
+ * Content moderation node access tests.
+ */
 class ContentModerationNodeAccessTestCase extends ContentModerationTestCase {
   protected $test_user;
 
-  function setUp($modules = array()) {
+  /**
+   * @inheritdoc
+   */
+  public function setUp($modules = array()) {
     $modules = array_merge($modules, array('content_moderation_node_access_test'));
     parent::setUp($modules);
   }
@@ -16,13 +23,17 @@ class ContentModerationNodeAccessTestCase extends ContentModerationTestCase {
   /**
    * Creates a node and tests the creation of node access rules.
    */
-  function testNodeAccessRecords() {
+  public function testNodeAccessRecords() {
     // Make sure this node type is moderated.
     $is_moderated = content_moderation_node_type_moderated($this->content_type);
     $this->assertTrue($is_moderated, t('The content type is moderated.'));
 
     // Create an published node that has access records.
-    $node1 = $this->backdropCreateNode(array('type' => $this->content_type, 'title' => 'Published node', 'status' => 1));
+    $node1 = $this->backdropCreateNode(array(
+      'type' => $this->content_type,
+      'title' => 'Published node',
+      'status' => 1,
+    ));
     $this->assertTrue(node_load($node1->nid), 'Test published node created.');
 
     // Assert grants were added to node_access on creation.
@@ -32,10 +43,15 @@ class ContentModerationNodeAccessTestCase extends ContentModerationTestCase {
     $this->assertEqual($records[0]->gid, 1, 'Grant with gid = 1 acquired for node without alteration.');
 
     // Create an unpublished node that has no access records.
-    $node2 = $this->backdropCreateNode(array('type' => $this->content_type, 'title' => 'Unpublished node', 'status' => 0));
+    $node2 = $this->backdropCreateNode(array(
+      'type' => $this->content_type,
+      'title' => 'Unpublished node',
+      'status' => 0,
+    ));
     $this->assertTrue(node_load($node2->nid), 'Test unpublished node created.');
 
-    // Check that no access records are present for the node, since it is not published.
+    // Check that no access records are present for the node, since it is not
+    // published.
     $records = db_query('SELECT realm, gid FROM {node_access} WHERE nid = :nid', array(':nid' => $node2->nid))->fetchAll();
     $this->assertEqual(count($records), 0, 'Returned no records for unpublished node.');
 
@@ -53,7 +69,11 @@ class ContentModerationNodeAccessTestCase extends ContentModerationTestCase {
     $this->assertEqual($records[0]->gid, 1, 'Grant with gid = 1 acquired for node without alteration.');
 
     // Create an published node that has access records.
-    $node3 = $this->backdropCreateNode(array('type' => $this->content_type, 'title' => 'Published node', 'status' => 1));
+    $node3 = $this->backdropCreateNode(array(
+      'type' => $this->content_type,
+      'title' => 'Published node',
+      'status' => 1,
+    ));
     $this->assertTrue(node_load($node3->nid), 'Test published node created.');
 
     // Make sure the "Moderate" tab is accessible.
@@ -65,7 +85,9 @@ class ContentModerationNodeAccessTestCase extends ContentModerationTestCase {
 
     // Run the same state change with a valid token, which should succeed.
     $this->backdropGet("node/{$node3->nid}/moderation/{$node3->vid}/change-state/needs_review", array(
-      'query' => array('token' => $this->backdropGetToken("{$node3->nid}:{$node3->vid}:needs_review"))
+      'query' => array(
+        'token' => $this->backdropGetToken("{$node3->nid}:{$node3->vid}:needs_review"),
+      ),
     ));
 
     // Test that we have unpublished the node.
@@ -74,7 +96,8 @@ class ContentModerationNodeAccessTestCase extends ContentModerationTestCase {
     $this->assertEqual($node->content_moderation['current']->state, 'needs_review', 'Node state changed to Needs Review via callback.');
     $this->assertFalse($node->status, 'Node is no longer published after moderation.');
 
-    // Check that no access records are present for the node, since it is not published.
+    // Check that no access records are present for the node, since it is not
+    // published.
     $records = db_query('SELECT realm, gid FROM {node_access} WHERE nid = :nid', array(':nid' => $node3->nid))->fetchAll();
     $this->assertEqual(count($records), 0, 'Returned no records for unpublished node.');
 

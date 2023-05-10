@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @file
  * Test module for Content Moderation.
@@ -29,6 +28,9 @@ function content_moderation_test_menu_alter(&$items) {
   $items['node/%node']['page callback'] = 'content_moderation_test_menu_node_callback';
 }
 
+/**
+ * Callback for content_moderation_test_menu_alter().
+ */
 function content_moderation_test_menu_node_callback($ignored_parameter, $page_callback) {
   $args = func_get_args();
   return call_user_func_array($page_callback, array_slice($args, 2));
@@ -65,19 +67,19 @@ function content_moderation_test_content_moderation_transition($node, $previous_
 /**
  * Sets values for testing api hooks.
  *
- * @param $name
+ * @param string $name
  *   The name of the value to store.
- * @param $value
+ * @param string $value
  *   The value to store.
  *
- * @return string | NULL
+ * @return string|null
  *   The value of a requested named variable, if requested.
  */
 function content_moderation_test_set($name, $value = NULL) {
-  $values = variable_get('content_moderation_test', array());
+  $values = state_get('content_moderation_test', array());
   if (!is_null($value)) {
     $values[$name] = $value;
-    variable_set('content_moderation_test', $values);
+    state_set('content_moderation_test', $values);
   }
   return isset($values[$name]) ? $values[$name] : NULL;
 }
@@ -85,10 +87,10 @@ function content_moderation_test_set($name, $value = NULL) {
 /**
  * Gets values for testing api hooks.
  *
- * @param $name
+ * @param string $name
  *   The name of the value to store.
  *
- * @return string | NULL
+ * @return string|null
  *   The value of the variable, if set.
  */
 function content_moderation_test_get($name) {

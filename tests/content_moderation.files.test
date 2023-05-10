@@ -1,17 +1,24 @@
 <?php
-
 /**
  * @file
  * Tests for using file fields with content_moderation.module.
  */
 
+require_once 'content_moderation.test';
+
+/**
+ * Content moderation files tests.
+ */
 class ContentModerationFilesTestCase extends FileTestHelper {
   protected $content_type;
   protected $moderator_user;
 
   protected $field_name;
 
-  function setUp() {
+  /**
+   * @inheritdoc
+   */
+  public function setUp() {
     parent::setUp();
 
     module_enable(array('content_moderation'));
@@ -48,7 +55,10 @@ class ContentModerationFilesTestCase extends FileTestHelper {
     $this->backdropLogin($this->moderator_user);
   }
 
-  function testModeratedFileField() {
+  /**
+   * Test moderated file field.
+   */
+  public function testModeratedFileField() {
     // Create a new node with an uploaded file.
     $file = $this->getTestFile('text');
     $edit = array(

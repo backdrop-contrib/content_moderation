@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @file
  *  Administrative functions for Content Moderation.
@@ -77,7 +76,7 @@ function content_moderation_admin_states_form($form, &$form_state) {
     '#type' => 'textfield',
     '#maxlength' => 255,
     '#title' => '&nbsp;',
-    '#description' => t('Enter a description of the new state.')
+    '#description' => t('Enter a description of the new state.'),
   );
   $new_state['weight'] = array(
     '#type' => 'weight',
@@ -127,7 +126,11 @@ function theme_content_moderation_admin_states_form($variables) {
     $rows[] = $row;
   }
 
-  $output = theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array('id' => 'content-moderation-states')));
+  $output = theme('table', array(
+    'header' => $header,
+    'rows' => $rows,
+    'attributes' => array('id' => 'content-moderation-states'),
+  ));
   $output .= backdrop_render_children($form);
 
   return $output;
@@ -140,7 +143,12 @@ function content_moderation_admin_states_form_submit($form, &$form_state) {
   foreach ($form_state['values']['states'] as $key => $info) {
     if (!empty($info['delete'])) {
       content_moderation_state_delete($info['state']);
-      backdrop_set_message(t('Moderation state %label (%name) has been deleted.', array('%label' => $info['label'], '%name' => $info['name'])));
+      backdrop_set_message(t('Moderation state %label (%name) has been deleted.',
+        array(
+          '%label' => $info['label'],
+          '%name' => $info['name'],
+        )
+      ));
     }
     elseif (!empty($info['name'])) {
       $state = array(
@@ -151,16 +159,30 @@ function content_moderation_admin_states_form_submit($form, &$form_state) {
       );
       content_moderation_state_save($state);
       if (module_exists('i18n_string')) {
-        i18n_string_update(array('content_moderation', 'moderation_state', $info['name'], 'label'), $info['label']);
-        i18n_string_update(array('content_moderation', 'moderation_state', $info['name'], 'description'), $info['description']);
+        i18n_string_update(array(
+          'content_moderation',
+          'moderation_state',
+          $info['name'],
+          'label',
+        ), $info['label']);
+        i18n_string_update(array(
+          'content_moderation',
+          'moderation_state',
+          $info['name'],
+          'description',
+        ), $info['description']);
       }
     }
   }
 
   backdrop_set_message(t('Your settings have been saved.'));
 
-  // Warn users that changes here may need require reconfiguring Views that use Workbench.
-  $views_message = t('Depending on the changes you have made it may be necessary to <a href="@views">reconfigure Views</a> that leverage Content Moderation such as <a href="@content_moderation">content_moderation</a>', array('@views' => url('admin/structure/views'), '@content_moderation' => url('admin/structure/views/edit/content_moderation')));
+  // Warn users that changes here may need require reconfiguring Views that use
+  // Workbench.
+  $views_message = t('Depending on the changes you have made it may be necessary to <a href="@views">reconfigure Views</a> that leverage Content Moderation such as <a href="@content_moderation">content_moderation</a>', array(
+    '@views' => url('admin/structure/views'),
+    '@content_moderation' => url('admin/structure/views/edit/content_moderation'),
+  ));
   backdrop_set_message($views_message, $type = 'warning', $repeat = FALSE);
 }
 
@@ -280,7 +302,11 @@ function theme_content_moderation_admin_transitions_form($variables) {
   }
   // @TODO: change this css call.
   backdrop_add_css(backdrop_get_path('module', 'content_moderation') . '/css/content_moderation.css');
-  $output = theme('table', array('header' => $header, 'rows' => $rows, 'attributes' => array('class' => array('width-auto'))));
+  $output = theme('table', array(
+    'header' => $header,
+    'rows' => $rows,
+    'attributes' => array('class' => array('width-auto')),
+  ));
   $output .= backdrop_render_children($form);
 
   return $output;
@@ -313,7 +339,12 @@ function content_moderation_admin_transitions_form_submit($form, &$form_state) {
   foreach ($form_state['values']['transitions'] as $transition) {
     if (!empty($transition['delete'])) {
       content_moderation_transition_delete($transition['transition']);
-      backdrop_set_message(t('%from --&gt; %to has been deleted.', array('%from' => content_moderation_state_label($transition['transition']['from_name']), '%to' => content_moderation_state_label($transition['transition']['to_name']))));
+      backdrop_set_message(t('%from --&gt; %to has been deleted.',
+        array(
+          '%from' => content_moderation_state_label($transition['transition']['from_name']),
+          '%to' => content_moderation_state_label($transition['transition']['to_name']),
+        )
+      ));
     }
     elseif (!empty($transition['label']) && !empty($transition['from_name']) && !empty($transition['to_name'])) {
       $new_transition = array(
@@ -323,7 +354,13 @@ function content_moderation_admin_transitions_form_submit($form, &$form_state) {
         'to_name' => $transition['to_name'],
       );
       content_moderation_transition_save($new_transition);
-      backdrop_set_message(t('%label: %from --&gt; %to has been created.',array('%label' => $new_transition['label'], '%from' => content_moderation_state_label($new_transition['from_name']), '%to' => content_moderation_state_label($new_transition['to_name']))));
+      backdrop_set_message(t('%label: %from --&gt; %to has been created.',
+        array(
+          '%label' => $new_transition['label'],
+          '%from' => content_moderation_state_label($new_transition['from_name']),
+          '%to' => content_moderation_state_label($new_transition['to_name']),
+        )
+      ));
     }
   }
 }
@@ -416,13 +453,16 @@ function content_moderation_admin_check_role_form_submit($form, &$form_state) {
     )), 'status');
   }
   else {
-    // The specified role didn't have some of the recommended permissions. Print a list for the user.
+    // The specified role didn't have some of the recommended permissions. Print
+    // a list for the user.
     $all_permissions = module_invoke_all('permission');
     foreach ($recommended_permissions as $permission) {
       backdrop_set_message(t('The @role role may need the "!permission_label" permission in order to be a qualified @moderation_task of @types content.', array(
         '@role' => $role->name,
         '@moderation_task' => $moderation_task,
-        '@types' => implode(t(' and '), array(implode(', ', array_slice($types, 0, -1)), end($types))), // @TODO: Context senstive translation bug
+        '@types' => implode(t(' and '), array(
+          implode(', ', array_slice($types, 0, -1)), end($types))
+        ), // @TODO: Context senstive translation bug
         '!permission_label' => $all_permissions[$permission]['title'],
       )), 'error');
     }
@@ -451,59 +491,55 @@ function content_moderation_admin_check_role_form_submit($form, &$form_state) {
  * Recommended permissions for typical moderation roles.
  */
 function content_moderation_recommended_permissions($types = array()) {
-  $states = content_moderation_states();
-  $draft = content_moderation_state_none();
-  $published = content_moderation_state_published();
-
   $permissions = array(
     'author' => array(
-      // node
+      // Node.
       "access content",
       "view own unpublished content",
       "view revisions",
 
-      // content_moderation
+      // Content moderation.
       "view moderation messages",
       "use content_moderation my drafts tab",
     ),
     'editor' => array(
-      // node
+      // Node.
       "access content",
       "view revisions",
       "revert revisions",
 
-      // content
+      // Content.
       "view all unpublished content",
 
-      // content_moderation
+      // Content moderation.
       "view moderation messages",
       "view moderation history",
       "use content_moderation my drafts tab",
       "use content_moderation needs review tab",
     ),
     'moderator' => array(
-      // node
+      // Node.
       "access content",
       "view revisions",
 
-      // content
+      // Content.
       "view all unpublished content",
 
-      // content_moderation
+      // Content moderation.
       "view moderation messages",
       "view moderation history",
       "use content_moderation needs review tab",
     ),
     'publisher' => array(
-      // node
+      // Node.
       "access content",
       "view revisions",
       "revert revisions",
 
-      // content
+      // Content.
       "view all unpublished content",
 
-      // content_moderation
+      // Content moderation.
       "view moderation messages",
       "view moderation history",
       "use content_moderation needs review tab",
