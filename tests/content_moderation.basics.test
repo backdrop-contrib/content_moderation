@@ -16,6 +16,8 @@ class ContentModerationModerateTabTestCase extends ContentModerationTestCase {
   public function setUp($modules = array()) {
     parent::setUp($modules);
     $this->backdropLogin($this->moderator_user);
+
+    return TRUE;
   }
 
   /**
@@ -91,6 +93,8 @@ class ContentModerationDraftTabTestCase extends ContentModerationTestCase {
     $modules = array_merge($modules, array('content'));
     parent::setUp($modules);
     $this->backdropLogin($this->moderator_user);
+
+    return TRUE;
   }
 
   /**
@@ -167,6 +171,8 @@ class ContentModerationPublishFromNodeFormTestCase extends ContentModerationTest
   public function setUp($modules = array()) {
     parent::setUp($modules);
     $this->backdropLogin($this->admin_user);
+
+    return TRUE;
   }
 
   /**
@@ -208,6 +214,8 @@ class ContentModerationUnpublishTestCase extends ContentModerationTestCase {
   public function setUp($modules = array()) {
     parent::setUp($modules);
     $this->backdropLogin($this->admin_user);
+
+    return TRUE;
   }
 
   /**
@@ -249,6 +257,8 @@ class ContentModerationRedirectAfterTitleChangeTestCase extends ContentModeratio
     $modules = array_merge($modules, array('content', 'pathauto'));
     parent::setUp($modules);
     $this->backdropLogin($this->moderator_user);
+
+    return TRUE;
   }
 
   /**

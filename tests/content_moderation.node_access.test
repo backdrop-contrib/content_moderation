@@ -18,6 +18,8 @@ class ContentModerationNodeAccessTestCase extends ContentModerationTestCase {
   public function setUp($modules = array()) {
     $modules = array_merge($modules, array('content_moderation_node_access_test'));
     parent::setUp($modules);
+
+    return TRUE;
   }
 
   /**

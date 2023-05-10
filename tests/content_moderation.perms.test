@@ -53,6 +53,8 @@ class ContentModerationViewUnpublishedTestCase extends ContentModerationPermsTes
   public function setUp($modules = array()) {
     parent::setUp($modules);
     $this->backdropLogin($this->author_user);
+
+    return TRUE;
   }
 
   /**

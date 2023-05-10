@@ -31,6 +31,8 @@ class ContentModerationExternalNodeUpdateTestCase extends ContentModerationTestC
     parent::setUp(array_merge($modules, array('content_moderation_test')));
 
     $this->backdropLogin($this->moderator_user);
+
+    return TRUE;
   }
 
   /**

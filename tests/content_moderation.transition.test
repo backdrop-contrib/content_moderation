@@ -11,6 +11,7 @@ require_once 'content_moderation.test';
  */
 class ContentModerationTransitionTestCase extends ContentModerationTestCase {
   protected $properties;
+  protected $node;
 
   /**
    * @inheritdoc
@@ -28,6 +29,8 @@ class ContentModerationTransitionTestCase extends ContentModerationTestCase {
       'previous_state',
       'new_state',
     );
+
+    return TRUE;
   }
 
   /**

@@ -53,6 +53,8 @@ class ContentModerationFilesTestCase extends FileTestHelper {
       'bypass content moderation',
     ));
     $this->backdropLogin($this->moderator_user);
+
+    return TRUE;
   }
 
   /**

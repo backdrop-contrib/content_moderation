@@ -51,6 +51,8 @@ class ContentModerationTestCase extends BackdropWebTestCase {
       'bypass content moderation',
       "create {$this->content_type} content",
     ));
+
+    return TRUE;
   }
 
   /**
