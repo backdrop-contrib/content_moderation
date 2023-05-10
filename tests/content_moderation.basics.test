@@ -90,7 +90,6 @@ class ContentModerationDraftTabTestCase extends ContentModerationTestCase {
    * @inheritdoc
    */
   public function setUp($modules = array()) {
-    $modules = array_merge($modules, array('content'));
     parent::setUp($modules);
     $this->backdropLogin($this->moderator_user);
 
@@ -143,6 +142,7 @@ class ContentModerationDraftTabTestCase extends ContentModerationTestCase {
         content_moderation_state_published(),
       )
     ));
+    $this->backdropGet("node/{$node->nid}/moderation");
     $edit = array('state' => $middle_state);
     $this->backdropPost(NULL, $edit, t('Apply'));
 
@@ -151,6 +151,7 @@ class ContentModerationDraftTabTestCase extends ContentModerationTestCase {
     $this->assertResponse(200);
 
     // Publish the content.
+    $this->backdropGet("node/{$node->nid}/moderation");
     $edit = array('state' => content_moderation_state_published());
     $this->backdropPost(NULL, $edit, t('Apply'));
 
@@ -253,8 +254,6 @@ class ContentModerationRedirectAfterTitleChangeTestCase extends ContentModeratio
    * @inheritdoc
    */
   public function setUp($modules = array()) {
-    // Make sure Content and Pathauto are both enabled.
-    $modules = array_merge($modules, array('content', 'pathauto'));
     parent::setUp($modules);
     $this->backdropLogin($this->moderator_user);
 
@@ -274,15 +273,17 @@ class ContentModerationRedirectAfterTitleChangeTestCase extends ContentModeratio
     $this->backdropPost("node/add/{$this->content_type}", $edit, t('Save'));
 
     // Moderate node to published.
+    $node = $this->backdropGetNodeByTitle($edit['title']);
+    $this->backdropGet("node/{$node->nid}/moderation");
     $moderate = array('state' => content_moderation_state_published());
     $this->backdropPost(NULL, $moderate, t('Apply'));
 
     // Edit node and change title.
-    $node = $this->backdropGetNodeByTitle($edit['title']);
     $edit = array('title' => $this->randomName(10) . '_revision1');
     $this->backdropPost("node/{$node->nid}/edit", $edit, t('Save'));
 
     // Moderate node to published.
+    $this->backdropGet("node/{$node->nid}/moderation");
     $moderate = array('state' => content_moderation_state_published());
     $this->backdropPost(NULL, $moderate, t('Apply'));
 

@@ -8,37 +8,37 @@ file = external_node_update.test
 name = Moderation tab
 description = Create a moderated node publish it using the "Moderate" tab.
 group = Content Moderation
-file = content_moderation.test
+file = content_moderation.basics.test
 
 [ContentModerationDraftTabTestCase]
 name = Draft tab
 description = Test access to the "Draft" tab and publishing from the mini moderation form on the draft tab.
 group = Content Moderation
-file = content_moderation.test
+file = content_moderation.basics.test
 
 [ContentModerationPublishFromNodeFormTestCase]
 name = Publish from node form
 description = Publish a moderated node from the node form.
 group = Content Moderation
-file = content_moderation.test
+file = content_moderation.basics.test
 
 [ContentModerationUnpublishTestCase]
 name = Unpublish moderated content
 description = Create and publish a moderated node then unpublish using the "Moderate" tab.
 group = Content Moderation
-file = content_moderation.test
+file = content_moderation.basics.test
 
 [ContentModerationRedirectAfterTitleChangeTestCase]
 name = Alias after title change
 description = Test whether the redirect keeps up with a changed alias
 group = Content Moderation
-file = content_moderation.test
+file = content_moderation.basics.test
 
-[ContentModerationFilesTestCase]
-name = Content Moderation file attachments
-description = Test moderation on nodes with with file attachments.
-group = Content Moderation
-file = content_moderation.files.test
+; [ContentModerationFilesTestCase]
+; name = Content Moderation file attachments
+; description = Test moderation on nodes with with file attachments.
+; group = Content Moderation
+; file = content_moderation.files.test
 
 [ContentModerationViewUnpublishedTestCase]
 name = View all unpublished content

@@ -735,6 +735,7 @@ function content_moderation_set_node_state(Node $node) {
     $node->content_moderation_state_current = !empty($node->original->content_moderation['current']->state) ? $node->original->content_moderation['current']->state : content_moderation_state_none();
   }
   if (!isset($node->content_moderation_state_new)) {
+    $default_state = config_get('node.type.' . $node->type, 'settings.content_moderation_default_state');
     // Moderating the default revision. Capture the proper state from drafty.
     if (!empty($node->default_revision) && $node->status) {
       $node->content_moderation_state_new = content_moderation_state_published();
@@ -744,7 +745,7 @@ function content_moderation_set_node_state(Node $node) {
       // @todo Currently we cannot set the state correctly if the default state
       //   is "Published".
       // @see https://www.drupal.org/node/1436260
-      $node->content_moderation_state_new = variable_get('content_moderation_default_state_' . $node->type, content_moderation_state_none());
+      $node->content_moderation_state_new = ($default_state == NULL) ?  content_moderation_state_none() : $default_state;
     }
     // Moving from unpublished to published.
     elseif ($node->status == NODE_PUBLISHED && isset($node->original->status) && $node->original->status == NODE_NOT_PUBLISHED) {
@@ -755,7 +756,7 @@ function content_moderation_set_node_state(Node $node) {
         $node->content_moderation_state_new = $node->original->content_moderation['current']->state;
       }
       else {
-        $node->content_moderation_state_new = variable_get('content_moderation_default_state_' . $node->type, content_moderation_state_none());
+        $node->content_moderation_state_new = ($default_state == NULL) ?  content_moderation_state_none() : $default_state;
       }
     }
   }
@@ -1196,7 +1197,7 @@ function content_moderation_moderate_node_types() {
  * Note that we do not use content-type specific moderation by default. To
  * enable that, see the instructions in content_moderation_permission().
  *
- * @param User $account
+ * @param User|AnonymousUser|object|null $account
  *   The user account being checked.
  * @param string $from_state
  *   The original moderation state.
@@ -1206,7 +1207,7 @@ function content_moderation_moderate_node_types() {
  * @return bool
  *   TRUE or FALSE.
  */
-function content_moderation_state_allowed(User $account, $from_state, $to_state, $node_type) {
+function content_moderation_state_allowed($account, $from_state, $to_state, $node_type) {
   // Allow super-users to moderate all content.
   if (user_access("bypass content moderation", $account)) {
     return TRUE;
@@ -1394,7 +1395,6 @@ function content_moderation_node_current_load(Node $node) {
   return $node;
 }
 
-
 /**
  * Utility function to load the live revision of a node.
  *
@@ -1404,7 +1404,7 @@ function content_moderation_node_current_load(Node $node) {
  * @param Node $node
  *   The node being acted upon.
  *
- * @return Node
+ * @return Node|null
  *   The node object of the live revision.
  */
 function content_moderation_node_live_load(Node $node) {
@@ -1412,8 +1412,8 @@ function content_moderation_node_live_load(Node $node) {
   if (isset($node->content_moderation['published']->vid)) {
     return node_load($node->nid, $node->content_moderation['published']->vid);
   }
+  return NULL;
 }
-
 
 /**
  * Utility function to determine if this node is in the live state.
@@ -1695,7 +1695,7 @@ function content_moderation_transition_delete(array $transition) {
  *
  * @param string $current_state
  *   The current moderation state.
- * @param User $account
+ * @param User|AnonymousUser|object|null $account
  *   The user object being checked.
  * @param Node $node
  *   The node object being acted upon.
@@ -1704,7 +1704,7 @@ function content_moderation_transition_delete(array $transition) {
  *   If the user may moderate a change, return an array of possible state
  *   changes. Otherwise, return FALSE.
  */
-function content_moderation_states_next($current_state, User $account, Node $node) {
+function content_moderation_states_next($current_state, $account, Node $node) {
   $states = FALSE;
 
   // Make sure we have a current state.
@@ -2161,18 +2161,19 @@ function content_moderation_access_link($text, $internal_path, array $options = 
   if (($item = menu_get_item($internal_path)) && !empty($item['access'])) {
     return l($text, $internal_path, $options);
   }
+  return '';
 }
 
 /**
  * Stores status messages for delivery.
  *
  * This function stores up moderation messages to be passed on to
- * content_moderation_content_block().
+ * content_moderation_block_view().
  *
  * This function uses a static variable so that function can be called more than
  * once and the array built up.
  *
- * @see content_moderation_content_block()
+ * @see content_moderation_block_view()
  * @see content_moderation_messages()
  *
  * @param array $new_messages
@@ -2188,22 +2189,49 @@ function content_moderation_set_message(array $new_messages = array()) {
 }
 
 /**
- * Implements hook_block_view_content_block().
+ * Implements hook_block_info().
+ */
+function content_moderation_block_info() {
+  $blocks['content_moderation_status'] = array(
+    'info' => t('Content moderation status'),
+    'description' => t('Display content moderation status and moderation form. Only available when a node context is available'),
+    'required contexts' => array('node' => 'node'),
+  );
+
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
  *
  * Show the editorial status of this node.
  */
-function content_moderation_content_block() {
-  $output = array();
+function content_moderation_block_view($delta = '', $settings = array(), $contexts = array()) {
+  if ($delta != 'content_moderation_status') {
+    return;
+  }
+  $block['subject'] = t('Content moderation status');
+
+  $items = array();
   foreach (content_moderation_set_message() as $message) {
-    $output[] = t('!label: <em>!message</em>', array(
+    $items[] = t('!label: <em>!message</em>', array(
       '!label' => $message['label'],
       '!message' => $message['message'],
     ));
   }
 
-  return $output;
-}
+  $block['content'] = array(
+    '#markup' => theme('container', array('element' => array(
+      '#children' => implode('<br/>', $items),
+      '#attributes' => array('class' => 'content-moderation-status'),
+    ))),
+    '#attached' => array(
+      'css' => array(backdrop_get_path('module', 'content_moderation') . '/css/content_moderation.css'),
+    ),
+  );
 
+  return $block;
+}
 
 /**
  * Implements hook_content_moderation_transition().

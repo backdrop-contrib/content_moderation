@@ -19,3 +19,8 @@ form.content-moderation-moderate-form label {
 #content-moderation-admin-transitions-form table {
   min-width: 380px;
 }
+
+.content-moderation-status {
+  padding: 1em;
+  background-color: #ffebc5;
+}

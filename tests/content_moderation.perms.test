@@ -39,6 +39,8 @@ class ContentModerationPermsTestCase extends BackdropWebTestCase {
       0 => 'create ' . $type->name . ' content',
     );
     $this->author_user = $this->backdropCreateUser($author_permissions);
+
+    return TRUE;
   }
 }
 
