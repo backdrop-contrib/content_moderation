@@ -460,7 +460,7 @@ function content_moderation_permission() {
     // Per-node type permissions are very complex, and should only be used if
     // absolutely needed. For right now, this is hardcoded to OFF. To enable it,
     // Add this line to settings.php and then reset permissions:
-    // $settings['content_moderation_per_node_type'] = TRUE;
+    // $settings['content_moderation_per_node_type'] = TRUE; // Permissions.
     if (settings_get('content_moderation_per_node_type', FALSE)) {
       foreach ($node_types as $node_type) {
         $permissions["moderate $node_type state from $from_state to $to_state"] = array(
