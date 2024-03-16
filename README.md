@@ -1,6 +1,6 @@
 # Content Moderation
 
-Arbitrary moderation states and unpublished drafts for content.
+Arbitrary moderation states and unpublished drafts for content. (A fork of Workbench Moderation).
 
 ## Concepts
 
@@ -236,6 +236,7 @@ complete text.
 ## Maintainers
 
 * [herbdool](https://github.com/herbdool)
+* [juanolalla](https://github.com/juanolalla)
 * Seeking more maintainers.
 
 ## Credit
