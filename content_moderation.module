@@ -15,8 +15,8 @@ function content_moderation_autoload_info() {
     'content_moderation_handler_filter_state' => 'includes/content_moderation_handler_filter_state.inc',
     'content_moderation_handler_filter_moderated_type' => 'includes/content_moderation_handler_filter_moderated_type.inc',
     'content_moderation_handler_filter_user_can_moderate' => 'includes/content_moderation_handler_filter_user_can_moderate.inc',
-    // 'ContentModerationMigrateDestinationHandler'
-    // => 'content_moderation.migrate.inc',
+    // 'ContentModerationMigrateDestinationHandler' => 'content_moderation.migrate.inc',
+    'ContentModerationDraftTracker' => 'includes/ContentModerationDraftTracker.inc',
   );
 }
 
@@ -723,56 +723,61 @@ function content_moderation_entity_presave($entity, $entity_type) {
     // has been written to the database.
     $id = $entity->id();
     $type = $entity->entityType();
-    $vid = content_moderation_get_published_revision_id($type, $id);
+    $vid = draft_tracker()->getPublishedRevisionId($type, $id);
     // $vid = $entity->getRevisionId(); (or use this?)
-    content_moderation_set_revision_to_be_published($type, $id, $vid);
+    draft_tracker()->setRevisionToBePublished($type, $id, $vid);
   }
   $recursion_level++;
 
 }
 
 /**
- * Get published revision ID
- *
- * @todo get the active revision instead?
- *
- * @param string $type
- * @param int $id
- *
- * @return int
+ * Implements hook_entity_update().
  */
-function content_moderation_get_published_revision_id($type, $id) {
-  $info = entity_get_info();
-  // Get the version ID of the published revision directly from the database.
-  // It is not possible to rely on $entity->original here since that does not
-  // guarantee being the published revision. Also avoid loading the entity
-  // because we may be in the process of saving it.
-  $query = db_select($info[$type]['base table'], 'b');
-  $query->addField('b', $info[$type]['entity keys']['revision']);
-  $query->condition($info[$type]['entity keys']['id'], $id);
-  $vid = $query->execute()->fetchField();
-
-  return $vid;
+function content_moderation_entity_update($entity, $type) {
+  $recursion_level = &backdrop_static('content_moderation_recursion_level', 0);
+  if ($recursion_level == 1) {
+    // Doing this in hook_entity_update() so that the entire process is
+    // completed within entity saving. However this results in two entity saves
+    // within entity insert. The other option is hook_exit(), which is not
+    // better since for example that would happen outside the transaction.
+    draft_tracker()->restorePublishedRevisions();
+  }
+  $recursion_level--;
 }
 
 /**
- * Add a revision to be published to the tracker.
- *
- * @param $type
- *   The entity type.
- * @param $id
- *   The entity ID.
- * @param $vid
- *   The entity version ID.
- *
- * @return $this
+ * Implements hook_entity_insert().
  */
-function content_moderation_set_revision_to_be_published($type, $id, $vid) {
-  // Only one revision can be published during a request, so just overwrite
-  // and for now last one wins.
-  return $vid;
+function content_moderation_entity_insert($entity, $type) {
+  $recursion_level = &backdrop_static('content_moderation_recursion_level', 0);
+  $recursion_level--;
 }
 
+/**
+ * Implements hook_field_attach_load().
+ */
+function content_moderation_field_attach_load($entity_type, $entities, $age, $options) {
+  // Entity API provides the function entity_revision_is_default() to determine
+  // whether an entity was loaded with the default revision or not. However this
+  // is not sufficient for two reasons.
+  //  - It relies on entity_load() for core entities, which makes it unsafe to
+  //    call within hook_entity_load() implementations. This can be useful when
+  //    allowing drafts to be previewed in context such as listings.
+  //  - The entity API implementation only tells you whether the entity was
+  //    loaded with that revision or not, but not whether it was requested
+  //    with the ID or with the revision explicitly specified.
+
+  // Note that hook_field_attach_load() is the only hook in core where it is
+  // possible to determine whether calling code requested a revision or not,
+  // this information is not available to hook_entity_load(). Also note that
+  // hook_field_attach_load() is cached when entities are loaded only be ID, but
+  // since revision loads don't use the field cache it works fine for our
+  // purposes.
+  foreach ($entities as $entity) {
+    $entity->content_moderation_revision_requested = $age;
+  }
+}
 
 /**
  * Implements hook_node_insert().
@@ -798,7 +803,7 @@ function content_moderation_set_node_state(Node $node) {
   }
   if (!isset($node->content_moderation_state_new)) {
     $default_state = config_get('node.type.' . $node->type, 'settings.content_moderation_default_state');
-    // Moderating the default revision. Capture the proper state from drafty.
+    // Moderating the default revision.
     if (!empty($node->isActiveRevision()) && $node->status) {
       $node->content_moderation_state_new = content_moderation_state_published();
     }
@@ -858,8 +863,7 @@ function content_moderation_save(Node $node) {
   $current_draft = &backdrop_static(__FUNCTION__, 0);
   global $user;
 
-  // Don't proceed if moderation is not enabled on this content or if we
-  // are saving the published version from drafty.
+  // Don't proceed if moderation is not enabled on this content.
   if (!content_moderation_node_moderated($node)) {
     return;
   }
@@ -1847,7 +1851,7 @@ function content_moderation_moderate(Node $node, $state) {
   // Set the state property for saving.
   $node->content_moderation_state_new = $state;
 
-  // Save the node and let drafty handle it.
+  // Save the node.
   node_save($node);
 }
 
@@ -2525,4 +2529,70 @@ function content_moderation_node_export_node_import_alter(&$node, $original_node
     return;
   }
   $node->revision = 1;
+}
+
+/**
+ * Callback function to delete a single temporary-draft revision.
+ *
+ * Could be called either from a batch job or from a cron-queue.
+ */
+function content_moderation_queue_delete_revision($content_moderation_queue_item, &$context = NULL) {
+  try {
+    // Trigger hook_content_moderation_predelete_revision(). Allow other modules to
+    // preserve information on the old revision before it's deleted.
+    module_invoke_all('content_moderation_predelete_revision', $content_moderation_queue_item['entity_type'], $content_moderation_queue_item['entity_id'], $content_moderation_queue_item['revision_id'], $content_moderation_queue_item['replaced_by']);
+
+    // Delete the old revision.
+    entity_revision_delete($content_moderation_queue_item['entity_type'], $content_moderation_queue_item['revision_id']);
+
+    // Document the successful batch operation for the batch-finished function
+    // to use.
+    if (!empty($context) && isset($context['results'])){
+      $context['results'][] = $content_moderation_queue_item;
+    }
+  }
+  catch (Exception $ex){
+    // Log the problem.
+    $message = 'An error occurred while deleting temporary revision: @args. Exception details: @error';
+    $args = array(
+      '@args' => print_r($content_moderation_queue_item, TRUE),
+      '@error' => print_r($ex, TRUE),
+    );
+    watchdog('content_moderation', $message, $args, WATCHDOG_ERROR);
+    throw $ex;  // Batch API will pass $success = FALSE.
+  }
+}
+
+/**
+ * Implements hook_cron_queue_info().
+ */
+function content_moderation_cron_queue_info() {
+  $queues['content_moderation_revision_delete'] = array(
+    'worker callback' => 'content_moderation_queue_delete_revision',
+    'time' => 60,
+  );
+  return $queues;
+}
+
+/**
+ * Batch completion callback for when draft-deletes happen in a batch job.
+ * $results contains info about successfully deleted revisions, and
+ * exception objects for revision-delete options that caused problems.
+ * $operations contains the operations that remained unprocessed.
+ */
+function content_moderation_delete_batch_finished($success, $results, $operations) {
+  // TODO: Display a message about temporary-revision-cleanup here?
+  // Note that logging of failed deletes is handled by the operation callback.
+}
+
+
+/**
+ * Factory function for the ContentModerationDraftTracker class.
+ */
+function draft_tracker() {
+  $tracker = &backdrop_static(__FUNCTION__);
+  if (!isset($tracker)) {
+    $tracker = new ContentModerationDraftTracker();
+  }
+  return $tracker;
 }
