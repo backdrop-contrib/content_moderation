@@ -1212,8 +1212,8 @@ function content_moderation_state_none() {
  * @return bool
  */
 function content_moderation_node_type_moderated($type) {
-  // Is this content even in moderatation?
-  return config_get('node.type.' . $type, 'settings.moderation_enabled');
+  // Is this content in moderation?
+  return (bool) config_get('node.type.' . $type, 'settings.moderation_enabled');
 }
 
 /**
