@@ -15,7 +15,7 @@ class ContentModerationDraftTracker {
   }
 
   public function isDraftRevision($entity) {
-    return !empty($entity->is_draft_revision);
+    return !empty($entity->is_active_revision);
   }
 
   /**
@@ -94,7 +94,7 @@ class ContentModerationDraftTracker {
     // we do that, set $entity->original to the entity we're in the process of
     // saving. i.e. the draft we're in the process of creating and need to
     // replace with the published version again.
-    $revision->is_draft_revision = FALSE;
+    $revision->is_active_revision = TRUE;
 
     return $this->saveRevisionAsNew($type, $revision);
   }
