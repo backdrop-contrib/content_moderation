@@ -1,22 +1,16 @@
 <?php
-
 /**
+ * @file
  * Handles tracking, selecting and publishing revisions.
  */
+
 class ContentModerationDraftTracker {
 
   /**
    * A list of entity types, ids and version IDs to be published.
+   * @var array
    */
   protected $revisionsToPublish = array();
-
-  public function wasRevisionRequested($entity) {
-    return isset($entity->_content_moderation_revision_requested) && $entity->_content_moderation_revision_requested === FIELD_LOAD_REVISION;
-  }
-
-  public function isDraftRevision($entity) {
-    return !empty($entity->is_active_revision);
-  }
 
   /**
    * Get the current published revision for an entity.
@@ -88,7 +82,7 @@ class ContentModerationDraftTracker {
       $langcode = entity_language($type, $entity);
       title_active_language($langcode);
     }
-    $revision = reset(entity_load_multiple($type, array(), array('vid' => $vid)));
+    $revision = entity_plus_revision_load($type, $vid);
 
     // Publishing a revision sometimes happens within hook_entity_update(). When
     // we do that, set $entity->original to the entity we're in the process of

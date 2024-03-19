@@ -4,4 +4,6 @@ package = Moderation
 backdrop = 1.x
 type = module
 
+dependencies[] = entity_plus
+
 configure = admin/config/content/moderation
