@@ -676,6 +676,7 @@ function content_moderation_views_api() {
  * Implements hook_module_implements_alter().
  */
 function content_moderation_module_implements_alter(&$implementations) {
+  module_load_include('inc', 'content_moderation', 'content_moderation.draft');
   content_moderation_rearrange_module_registry($implementations);
 }
 
