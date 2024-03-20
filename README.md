@@ -31,10 +31,10 @@ behavior: any time a content is edited, a new version is created.
 
 When there are multiple versions of a content--it has been edited multiple times,
 and each round of editing has been saved in a revision--there is one "current"
-revision. The current revision will always be the revision displayed in the content
+revision. The active revision will always be the revision displayed in the content
 editing form when a user goes to edit a piece of content.
 
-In Backdrop core, publishing a content makes the current revision visible to site
+In Backdrop core, publishing a content makes the active revision visible to site
 visitors (in a typical configuration). Once a content is published, its current
 revision is always the published version. Content Moderation changes this; it
 allows you to use an older revision of a content as the published version, while
@@ -45,7 +45,7 @@ continuing to edit a newer draft.
 
 Internally, Content Moderation does this by managing the version of the content
 stored in the {node} table. Backdrop core looks in this table for the "current
-revision" of a content. Backdrop core equates the "current revision" of a content with
+revision" of a content. Backdrop core equates the "active revision" of a content with
 both the editable revision and, if the content is published, the published
 revision. Content Moderation separates these two concepts; it stores the
 published revision of a content in the {node} table, but uses the latest revision

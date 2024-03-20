@@ -133,7 +133,7 @@ function content_moderation_views_data() {
   );
   $data['content_moderation_node_history']['is_current'] = array(
     'title' => t('Current'),
-    'help' => t('Whether or not this is the current revision.'),
+    'help' => t('Whether or not this is the active revision.'),
     'field' => array(
       'handler' => 'views_handler_field_boolean',
       'click sortable' => TRUE,

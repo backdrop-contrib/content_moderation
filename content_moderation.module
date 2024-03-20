@@ -15,8 +15,7 @@ function content_moderation_autoload_info() {
     'content_moderation_handler_filter_state' => 'includes/content_moderation_handler_filter_state.inc',
     'content_moderation_handler_filter_moderated_type' => 'includes/content_moderation_handler_filter_moderated_type.inc',
     'content_moderation_handler_filter_user_can_moderate' => 'includes/content_moderation_handler_filter_user_can_moderate.inc',
-    // 'ContentModerationMigrateDestinationHandler'
-    // => 'content_moderation.migrate.inc',
+    'ContentModerationDraftTracker' => 'includes/ContentModerationDraftTracker.inc',
   );
 }
 
@@ -80,10 +79,10 @@ function content_moderation_menu() {
     'weight' => -1,
   );
 
-  // View the current revision of a node. Redirects to node/%node if the current
-  // revision is published, and to node/%node/draft if the current revision is
+  // View the active revision of a node. Redirects to node/%node if the active
+  // revision is published, and to node/%node/draft if the active revision is
   // a draft.
-  $items["node/%node/current-revision"] = array(
+  $items["node/%node/active-revision"] = array(
     'page callback' => 'content_moderation_node_current_view',
     'page arguments' => array(1),
     'access arguments' => array('access content'),
@@ -530,10 +529,10 @@ function _content_moderation_access($op, Node $node) {
 /**
  * Wrapper for the 'revert' and 'delete' operations of _node_revision_access().
  *
- * Backdrop core's "current revision" of a node is the version in {node}; for
+ * Backdrop core's "active revision" of a node is the version in {node}; for
  * Content Moderation, latest revision in {node_revision} is the current
  * revision. For nodes with a published revision, Content Moderation keeps
- * that revision in {node}, whether or not it is the current revision.
+ * that revision in {node}, whether or not it is the active revision.
  *
  * @param Node $node
  *   The node being acted on.
@@ -546,15 +545,16 @@ function _content_moderation_revision_access(Node $node, $op) {
     return _node_revision_access($node, $op);
   }
 
-  // Prevent reverting to (ie, update) the current revision.
+  // Prevent reverting to (ie, update) the active revision.
   if ($node->content_moderation['current']->vid == $node->content_moderation['my_revision']->vid) {
     if ($op == 'update') {
       return FALSE;
     }
   }
-  // Prevent deleting the current revision, if there is no separate published
-  // revision. This also prevents deleting the current revision if it is the
+  // Prevent deleting the active revision, if there is no separate published
+  // revision. This also prevents deleting the active revision if it is the
   // only revision, and its unpublished.
+  $is_active_revision = $node->isActiveRevision();
   if ($node->content_moderation['current']->vid == $node->content_moderation['my_revision']->vid) {
     if ($op == 'delete' && !isset($node->content_moderation['published'])) {
       // In theory, deleting the one and only revision of a node could be
@@ -596,7 +596,7 @@ function _content_moderation_moderate_access(Node $node, $state) {
   $next_states = content_moderation_states_next($my_revision->state, $user, $node);
   // Determining node access:
   // - The user can edit the node.
-  // - This is the current revision (no branching the revision history).
+  // - This is the active revision (no branching the revision history).
   // - There are next states the user may transition to.
   // - This state is in the available next states.
   $access = node_access('update', $node, $user)
@@ -624,7 +624,6 @@ function _content_moderation_moderate_access(Node $node, $state) {
  *   TRUE or FALSE.
  */
 function _content_moderation_access_current_draft(Node $node) {
-
   // This tab should only appear for nodes under moderation.
   if (!content_moderation_node_moderated($node)) {
     return FALSE;
@@ -670,7 +669,15 @@ function content_moderation_help($path, $arg) {
  * Implements hook_views_api().
  */
 function content_moderation_views_api() {
-  return array('api' => 2.0);
+  return array('api' => 3);
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function content_moderation_module_implements_alter(&$implementations) {
+  module_load_include('inc', 'content_moderation', 'content_moderation.draft');
+  content_moderation_rearrange_module_registry($implementations);
 }
 
 /**
@@ -700,16 +707,46 @@ function content_moderation_entity_presave($entity, $entity_type) {
 
   // If we are unpublishing a node, do not force revision.
   if (!$entity->status) {
-    // @todo do we have to set it as the active revision or not?
-    $entity->is_draft_revision = FALSE;
+    $entity->is_active_revision = TRUE;
   }
 
-  // Inform drafty if this is a new revision, if it has not already been
+  // Inform if this is a new revision, if it has not already been
   // marked as such.
-  elseif (!isset($entity->is_draft_revision) && !$published) {
-    $entity->is_draft_revision = TRUE;
+  elseif (!isset($entity->is_active_revision) && !$published) {
+    $entity->is_active_revision = TRUE;
   }
 
+  // @todo only do so if core setting is "Save as draft" or override it?
+  if (!$published) {
+    $entity->status = NODE_NOT_PUBLISHED;
+  }
+
+  module_load_include('inc', 'content_moderation', 'content_moderation.draft');
+  content_moderation_set_revision_to_publish($entity);
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function content_moderation_entity_update($entity, $type) {
+  module_load_include('inc', 'content_moderation', 'content_moderation.draft');
+  content_moderation_restore_published_revision();
+}
+
+/**
+ * Implements hook_entity_insert().
+ */
+function content_moderation_entity_insert($entity, $type) {
+  module_load_include('inc', 'content_moderation', 'content_moderation.draft');
+  content_moderation_reduce_recursion_level();
+}
+
+/**
+ * Implements hook_field_attach_load().
+ */
+function content_moderation_field_attach_load($entity_type, $entities, $age, $options) {
+  module_load_include('inc', 'content_moderation', 'content_moderation.draft');
+  content_moderation_get_revision_requested($entities, $age);
 }
 
 /**
@@ -736,8 +773,8 @@ function content_moderation_set_node_state(Node $node) {
   }
   if (!isset($node->content_moderation_state_new)) {
     $default_state = config_get('node.type.' . $node->type, 'settings.content_moderation_default_state');
-    // Moderating the default revision. Capture the proper state from drafty.
-    if (!empty($node->default_revision) && $node->status) {
+    // Moderating the default revision.
+    if (!empty($node->isActiveRevision()) && $node->status) {
       $node->content_moderation_state_new = content_moderation_state_published();
     }
     // Moving from published to unpublished.
@@ -796,8 +833,7 @@ function content_moderation_save(Node $node) {
   $current_draft = &backdrop_static(__FUNCTION__, 0);
   global $user;
 
-  // Don't proceed if moderation is not enabled on this content or if we
-  // are saving the published version from drafty.
+  // Don't proceed if moderation is not enabled on this content.
   if (!content_moderation_node_moderated($node)) {
     return;
   }
@@ -809,9 +845,8 @@ function content_moderation_save(Node $node) {
   $state = $node->content_moderation_state_new;
   $old_revision = $node->content_moderation['my_revision'];
 
-  $node->is_current = FALSE;
-  if (empty($node->default_revision)) {
-    $node->is_current = TRUE;
+  if (empty($node->isActiveRevision())) {
+    $node->setIsActiveRevision();
   }
 
   // Build a history record.
@@ -821,7 +856,7 @@ function content_moderation_save(Node $node) {
     'nid' => $node->nid,
     'vid' => $node->vid,
     'uid' => $user->uid,
-    'is_current' => !empty($node->is_current),
+    'is_current' => !empty($node->isActiveRevision()),
     'published' => ($state == content_moderation_state_published()),
     'stamp' => $_SERVER['REQUEST_TIME'],
   );
@@ -849,7 +884,7 @@ function content_moderation_save(Node $node) {
   backdrop_write_record('content_moderation_node_history', $new_revision);
 
   // On a moderation loop, inform other modules of the change.
-  if (!empty($node->is_current)) {
+  if (!empty($node->isActiveRevision())) {
     // Clear the node's cache.
     entity_get_controller('node')->resetCache(array($node->nid));
 
@@ -1091,10 +1126,10 @@ function content_moderation_form_node_form_alter(&$form, $form_state) {
 }
 
 /**
- * Redirect to the current revision of a node after editing.
+ * Redirect to the active revision of a node after editing.
  */
 function content_moderation_node_form_submit($form, &$form_state) {
-  $form_state['redirect'] = array('node/' . $form_state['node']->nid . '/current-revision');
+  $form_state['redirect'] = array('node/' . $form_state['node']->nid . '/active-revision');
 }
 
 /**
@@ -1111,7 +1146,7 @@ function content_moderation_node_edit_page_override(Node $node) {
     if (content_moderation_node_type_moderated($node->type)) {
       // Load the node moderation data.
       content_moderation_node_data($node);
-      // We ONLY edit the current revision.
+      // We ONLY edit the active revision.
       $node = content_moderation_node_current_load($node);
     }
   }
@@ -1147,8 +1182,8 @@ function content_moderation_state_none() {
  * @return bool
  */
 function content_moderation_node_type_moderated($type) {
-  // Is this content even in moderatation?
-  return config_get('node.type.' . $type, 'settings.moderation_enabled');
+  // Is this content in moderation?
+  return (bool) config_get('node.type.' . $type, 'settings.moderation_enabled');
 }
 
 /**
@@ -1268,7 +1303,7 @@ function content_moderation_node_data(Node $node) {
   // Build a default 'current' moderation record. Nodes will lack a
   // content_moderation record if moderation was not enabled for their node
   // type when they were created. In that case, assume the live node is at the
-  // current revision.
+  // active revision.
   $defaults = array(
     'hid' => NULL,
     'nid' => $node->nid,
@@ -1284,8 +1319,8 @@ function content_moderation_node_data(Node $node) {
   // We'll store moderation state information in an array on the node.
   $node->content_moderation = array();
 
-  // Fetch the most current revision from the {node_revision} table. This is the
-  // current revision ("head").
+  // Fetch the most active revision from the {node_revision} table. This is the
+  // active revision ("head").
   $query = db_select('node_revision', 'r');
   $query->addJoin('LEFT OUTER', 'content_moderation_node_history', 'm', 'r.vid = %alias.vid');
   $query->condition('r.nid', $node->nid)
@@ -1355,7 +1390,7 @@ function content_moderation_node_data(Node $node) {
 
     // This might happen if you're turning content_moderation on and off, but
     // it should be really rare. Content_moderation must have recorded a
-    // current revision, and then the node table must contain a different and
+    // active revision, and then the node table must contain a different and
     // unpublished revision.
     if (!$my_revision) {
       $my_revision = (object) array(
@@ -1376,7 +1411,7 @@ function content_moderation_node_data(Node $node) {
 }
 
 /**
- * Utility function to load the current revision of a node.
+ * Utility function to load the active revision of a node.
  *
  * @param Node $node
  *   The node being acted upon.
@@ -1385,9 +1420,9 @@ function content_moderation_node_data(Node $node) {
  *   The current node according to moderation.
  */
 function content_moderation_node_current_load(Node $node) {
-  // Is there a current revision?
+  // Is there a active revision?
   if (isset($node->content_moderation['current']->vid)) {
-    // Ensure that we will return the current revision.
+    // Ensure that we will return the active revision.
     if ($node->vid != $node->content_moderation['current']->vid) {
       $node = node_load($node->nid, $node->content_moderation['current']->vid);
     }
@@ -1422,7 +1457,7 @@ function content_moderation_node_live_load(Node $node) {
  *   The node being acted upon.
  *
  * @return bool
- *   TRUE if this is the current revision. FALSE if not.
+ *   TRUE if this is the active revision. FALSE if not.
  */
 function content_moderation_node_is_current(Node $node) {
   if (isset($node->content_moderation['published']->vid) && isset($node->content_moderation['current']->vid)) {
@@ -1786,7 +1821,7 @@ function content_moderation_moderate(Node $node, $state) {
   // Set the state property for saving.
   $node->content_moderation_state_new = $state;
 
-  // Save the node and let drafty handle it.
+  // Save the node.
   node_save($node);
 }
 
@@ -1883,7 +1918,7 @@ function content_moderation_moderate_form($form, &$form_state, Node $node, $dest
 
     // Cache the form on first load to preserve the node for validation.
     // Otherwise, the node would be reloaded on submit, and there would be no
-    // way to detect if the current revision has been changed.
+    // way to detect if the active revision has been changed.
     $form_state['cache'] = TRUE;
   }
   else {
@@ -1917,12 +1952,12 @@ function _content_moderation_default_next_state($current_state, array $next_stat
  */
 function content_moderation_moderate_form_validate($form, &$form_state) {
   // Make sure that the revision that was shown to the user is still the current
-  // revision before changing the current revision's state.
+  // revision before changing the active revision's state.
   $moderated_node = $form_state['values']['node'];
   $current_node = content_moderation_node_current_load(node_load($moderated_node->nid));
   if ($moderated_node->vid != $current_node->vid) {
     form_set_error('', t('The moderation state could not be changed because the draft has been updated by another user. Please review the current draft.'));
-    // Redirect the form so that it rebuilds with the current revision.
+    // Redirect the form so that it rebuilds with the active revision.
     backdrop_redirect_form($form_state);
   }
 }
@@ -2021,7 +2056,7 @@ function content_moderation_messages($context, Node $node = NULL) {
     backdrop_static('_node_revision_access', array(), TRUE);
 
     // Add a moderation form.
-    if ($revision_current && !$revision_published && _content_moderation_access('update', $node) && $moderate_form = backdrop_get_form('content_moderation_moderate_form', $node, "node/{$node->nid}/current-revision")) {
+    if ($revision_current && !$revision_published && _content_moderation_access('update', $node) && $moderate_form = backdrop_get_form('content_moderation_moderate_form', $node, "node/{$node->nid}/active-revision")) {
       if ($moderate_form = backdrop_render($moderate_form)) {
         $info_block_messages[] = array(
           'label' => t('Set moderation state'),
@@ -2060,10 +2095,10 @@ function content_moderation_messages($context, Node $node = NULL) {
         );
       }
 
-      // If the current revision is next or previous, use the
-      // "node/%node/current-revision" path.
+      // If the active revision is next or previous, use the
+      // "node/%node/active-revision" path.
       if (($current = $state['current']->vid) && isset($links[$current])) {
-        $links[$current]['href'] = "node/{$node->nid}/current-revision";
+        $links[$current]['href'] = "node/{$node->nid}/active-revision";
       }
 
       // If the published revision is next or previous, use the "node/%node"
@@ -2097,7 +2132,7 @@ function content_moderation_messages($context, Node $node = NULL) {
     elseif ($node_published && !$revision_published) {
       $info_block_messages[] = array(
         'label' => t('Status'),
-        'message' => t('New draft from current revision'),
+        'message' => t('New draft from active revision'),
       );
       $link = content_moderation_access_link(t('Create a new draft from the published revision.'), "node/{$node->nid}/revisions/{$state['published']->vid}/revert");
       $info_block_messages[] = array(
@@ -2405,13 +2440,6 @@ function content_moderation_set_state_action(Node $node, $context) {
 }
 
 /**
- * Implements hook_migrate_api().
- */
-function content_moderation_migrate_api() {
-  return array('api' => 2);
-}
-
-/**
  * Wrapper for user_access to admin content_moderation.
  */
 function content_moderation_transition_access($op, $profile = NULL, $account = NULL) {
@@ -2435,7 +2463,7 @@ function content_moderation_node_export_node_alter(Node &$node, Node $original_n
     return;
   }
 
-  // Set the current state to be the same as the current revision's state.
+  // Set the current state to be the same as the active revision's state.
   if(!isset($node->content_moderation_state_current) && isset($node->content_moderation) && isset($node->content_moderation['current'])){
     $node->content_moderation_state_current = $node->content_moderation['current']->state;
   }
@@ -2464,4 +2492,14 @@ function content_moderation_node_export_node_import_alter(&$node, $original_node
     return;
   }
   $node->revision = 1;
+}
+
+/**
+ * Implements hook_cron_queue_info().
+ */
+function content_moderation_cron_queue_info() {
+  $queues = array();
+  $queues += content_moderation_revision_delete_cron_queue();
+
+  return $queues;
 }

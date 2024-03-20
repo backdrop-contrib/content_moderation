@@ -5,7 +5,7 @@
  */
 
 /**
- * Redirects the user to the current revision of the node.
+ * Redirects the user to the active revision of the node.
  *
  * This page will deliver either the 'draft' page or the regular node view page.
  *
@@ -123,7 +123,7 @@ function content_moderation_node_history_view(Node $node) {
 
     // Add row classes.
     if ($revision->vid == $node->content_moderation['current']->vid) {
-      $row['class'][] = 'current-revision';
+      $row['class'][] = 'active-revision';
     }
     if (isset($node->content_moderation['published']) && $revision->vid == $node->content_moderation['published']->vid) {
       $row['class'][] = 'published-revision';
@@ -156,10 +156,10 @@ function content_moderation_node_history_view(Node $node) {
       if (isset($node->content_moderation['published']) && $revision->vid == $node->content_moderation['published']->vid) {
         $url = "node/{$revision->nid}";
       }
-      // The special case "current-revision" link handles routing for the
+      // The special case "active-revision" link handles routing for the
       // current unpublished revision.
       elseif ($revision->vid == $node->content_moderation['current']->vid) {
-        $url = "node/{$revision->nid}/current-revision";
+        $url = "node/{$revision->nid}/active-revision";
       }
       // Otherwise, link to the normal revision view page.
       else {
@@ -173,7 +173,7 @@ function content_moderation_node_history_view(Node $node) {
       $revision_operations['revert'] = l(t('Revert'), "node/{$revision->nid}/revisions/{$revision->vid}/revert");
     }
 
-    // Provide a courtesy edit operation if this is the current revision.
+    // Provide a courtesy edit operation if this is the active revision.
     if ($revision->vid == $node->content_moderation['current']->vid) {
       // The edit operation's default link title, "Edit draft", matches
       // the logic tree in content_moderation_edit_tab_title().
@@ -215,7 +215,7 @@ function content_moderation_node_history_view(Node $node) {
       }
     }
 
-    // If this is the current revision, provide moderation links.
+    // If this is the active revision, provide moderation links.
     if (!empty($node->content_moderation['published']) && $revision->vid == $node->content_moderation['published']->vid) {
       $row['data']['moderation'] = '<div class="moderation-state"><strong>' . t('This is the published revision.') . '</strong></div>';
       // Provide an unpublish link.
@@ -226,7 +226,7 @@ function content_moderation_node_history_view(Node $node) {
     }
     elseif ($revision->vid == $node->content_moderation['current']->vid) {
       $node_current = content_moderation_node_current_load($node);
-      $row['data']['moderation'] = '<div class="moderation-state"><strong>' . t('This is the current revision. The current state is %state.', array('%state' => content_moderation_state_label($node->content_moderation['current']->state))) . '</strong></div>';
+      $row['data']['moderation'] = '<div class="moderation-state"><strong>' . t('This is the active revision. The current state is %state.', array('%state' => content_moderation_state_label($node->content_moderation['current']->state))) . '</strong></div>';
       $moderate_form = backdrop_get_form('content_moderation_moderate_form', $node_current);
       $row['data']['moderation'] .= '<div class="moderation-actions">' . t('Set moderation state: !moderation-actions-form', array('!moderation-actions-form' => backdrop_render($moderate_form))) . '</div>';
     }
