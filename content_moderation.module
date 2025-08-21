@@ -16,6 +16,7 @@ function content_moderation_autoload_info() {
     'content_moderation_handler_filter_moderated_type' => 'includes/content_moderation_handler_filter_moderated_type.inc',
     'content_moderation_handler_filter_user_can_moderate' => 'includes/content_moderation_handler_filter_user_can_moderate.inc',
     'ContentModerationDraftTracker' => 'includes/ContentModerationDraftTracker.inc',
+    // 'ContentModerationMigrateDestinationHandler' => 'content_moderation.migrate.inc',
   );
 }
 
@@ -1182,7 +1183,6 @@ function content_moderation_state_none() {
  * @return bool
  */
 function content_moderation_node_type_moderated($type) {
-  // Is this content in moderation?
   return (bool) config_get('node.type.' . $type, 'settings.moderation_enabled');
 }
 

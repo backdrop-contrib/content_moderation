@@ -186,3 +186,14 @@ function content_moderation_update_1002() {
     db_drop_table('workbench_moderation_transitions');
   }
 }
+
+/**
+ * Rename workbench_moderation_node_history table.
+ */
+function content_moderation_update_1003() {
+  $table = 'workbench_moderation_node_history';
+  $new_name = 'content_moderation_node_history';
+  if (db_table_exists($table) && !db_table_exists($new_name)) {
+    db_rename_table($table, $new_name);
+  }
+}
