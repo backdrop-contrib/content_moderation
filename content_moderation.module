@@ -1461,7 +1461,8 @@ function content_moderation_state_labels() {
 
   if (!isset($labels)) {
     $labels = array();
-    foreach (content_moderation_states() as $machine_name => $state) {
+    $states = content_moderation_states();
+    foreach ($states as $machine_name => $state) {
       if (module_exists('i18n_string')) {
         $labels[$machine_name] = i18n_string_translate(array(
           'content_moderation',
@@ -1714,24 +1715,20 @@ function content_moderation_states_next($current_state, $account, Node $node) {
     $account = $GLOBALS['user'];
   }
 
+  // Some functions expect an array of machine_name => label pairs.
+  $states = content_moderation_state_labels();
+
   if (user_access('bypass content moderation', $account)) {
-    // Some functions expect an array of $state => $state pairs.
-    $states = content_moderation_state_labels();
+    // Include all states but the current state.
     unset($states[$current_state]);
   }
   else {
+    // Include only the states this person has permission to transition to.
     $config_transitions = config('content_moderation.transitions');
     $transitions = $config_transitions->getData();
     foreach ($transitions as $t) {
       if ($t['from_name'] == $current_state) {
         $transition = $t;
-      }
-    }
-    $config_states = config('content_moderation.states');
-    $states = $config_states->getData();
-    foreach ($states as $s) {
-      if ($s['name'] != $transition['to_name']) {
-        unset($states[$s['name']]);
       }
     }
 
@@ -1740,6 +1737,9 @@ function content_moderation_states_next($current_state, $account, Node $node) {
     // content_moderation_state_allowed().
     if ($states) {
       foreach ($states as $machine_name => $label) {
+        if (isset($transition) && $machine_name != $transition['to_name']) {
+          unset($states[$machine_name]);
+        }
         if (!content_moderation_state_allowed($account, $current_state, $machine_name, $node->type)) {
           unset($states[$machine_name]);
         }
@@ -1858,31 +1858,33 @@ function content_moderation_moderate_form($form, &$form_state, Node $node, $dest
   // Build links to available moderation states.
   $links = array();
   $my_revision = $node->content_moderation['my_revision'];
-  if ($my_revision->vid == $node->content_moderation['current']->vid
-      && $next_states = content_moderation_states_next($my_revision->state, $user, $node)) {
-    $form['#destination'] = $destination;
-    $form['node'] = array(
-      '#type' => 'value',
-      '#value' => $node,
-    );
-    $form['#attributes']['class'][] = 'content-moderation-moderate-form';
-    $form['#attached']['css'][] = backdrop_get_path('module', 'content_moderation') . '/css/content_moderation.css';
-    $form['state'] = array(
-      '#type' => 'select',
-      '#title' => t('Moderation state'),
-      '#title_display' => 'invisible',
-      '#options' => $next_states,
-      '#default_value' => _content_moderation_default_next_state($my_revision->state, $next_states),
-    );
-    $form['submit'] = array(
-      '#type' => 'submit',
-      '#value' => t('Apply'),
-    );
+  if ($my_revision->vid == $node->content_moderation['current']->vid) {
+    $next_states = content_moderation_states_next($my_revision->state, $user, $node);
+    if ($next_states) {
+      $form['#destination'] = $destination;
+      $form['node'] = array(
+        '#type' => 'value',
+        '#value' => $node,
+      );
+      $form['#attributes']['class'][] = 'content-moderation-moderate-form';
+      $form['#attached']['css'][] = backdrop_get_path('module', 'content_moderation') . '/css/content_moderation.css';
+      $form['state'] = array(
+        '#type' => 'select',
+        '#title' => t('Moderation state'),
+        '#title_display' => 'invisible',
+        '#options' => $next_states,
+        '#default_value' => _content_moderation_default_next_state($my_revision->state, $next_states),
+      );
+      $form['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Apply'),
+      );
 
-    // Cache the form on first load to preserve the node for validation.
-    // Otherwise, the node would be reloaded on submit, and there would be no
-    // way to detect if the current revision has been changed.
-    $form_state['cache'] = TRUE;
+      // Cache the form on first load to preserve the node for validation.
+      // Otherwise, the node would be reloaded on submit, and there would be no
+      // way to detect if the current revision has been changed.
+      $form_state['cache'] = TRUE;
+    }
   }
   else {
     $form['#access'] = FALSE;
