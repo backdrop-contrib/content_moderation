@@ -936,13 +936,44 @@ function content_moderation_form_node_type_form_alter(&$form, $form_state) {
     ),
   );
 
+  // Allow specific states for each node type. Default to all states for
+  // backwards-compatibility.
+  if (!isset($node_type->settings['allowed_states'])) {
+    $default_set = FALSE;
+    $moderation_states_default = array_keys($options);
+  }
+  else {
+    $default_set = TRUE;
+    $moderation_states_default = $node_type->settings['allowed_states'];
+  }
+  $form['content_moderation']['allowed_states'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Allowed moderation states'),
+    '#options' => $options,
+    '#default_value' => $moderation_states_default,
+    '#description' => t(''),
+    '#states' => array(
+      'visible' => array(':input[name="moderation_enabled"]' => array('checked' => TRUE)),
+    ),
+  );
+
+  // Reduce the options for default to only those that are allowed.
+    // @todo also use #ajax to update these options real-time.
+  $moderation_states_default_options = $options;
+  if ($default_set) {
+    foreach ($options as $key => $label) {
+      if (!in_array($key, $node_type->settings['allowed_states'])) {
+        unset($moderation_states_default_options[$key]);
+      }
+    }
+  }
   // This select element is hidden when moderation is not enabled.
   $form['content_moderation']['content_moderation_default_state'] = array(
     '#title' => t('Default moderation state'),
     '#type' => 'select',
-    '#options' => $options,
+    '#options' => $moderation_states_default_options,
     '#default_value' => !isset($node_type->settings['content_moderation_default_state']) ? NULL : $node_type->settings['content_moderation_default_state'],
-    '#description' => t('Set the default moderation state for this content type. Users with additional moderation permissions will be able to set the moderation state when creating or editing nodes.'),
+    '#description' => t('Set the default moderation state for this content type. Paople with additional moderation permissions will be able to change this state when creating or editing content.'),
     '#states' => array(
       'visible' => array(':input[name="moderation_enabled"]' => array('checked' => TRUE)),
     ),
@@ -960,6 +991,15 @@ function content_moderation_node_type_form_validate($form, &$form_state) {
     $form_state['values']['status_default'] = 0;
     $form_state['values']['revision_enabled'] = 1;
   }
+  // Ensure the default state is an allowed state.
+  if (isset($form_state['values']['content_moderation_default_state']) && isset($node_type->settings['allowed_states'])) {
+    $node_type = $form['#node_type'];
+    $default = $form_state['values']['content_moderation_default_state'];
+    $allowed = $node_type->settings['allowed_states'];
+    if (!in_array($default, $allowed)) {
+      form_set_error('content_moderation_default_state');
+    }
+  }
 }
 
 /**
@@ -969,6 +1009,7 @@ function content_moderation_node_type_form_submit($form, &$form_state) {
   if (isset($form_state['values']['moderation_enabled'])) {
     $config = config('node.type.' . $form_state['values']['type']);
     $config->set('settings.moderation_enabled', $form_state['values']['moderation_enabled']);
+    $config->set('settings.allowed_states', $form_state['values']['allowed_states']);
     $config->set('settings.content_moderation_default_state', $form_state['values']['content_moderation_default_state']);
     $config->save();
   }
@@ -1012,25 +1053,29 @@ function content_moderation_form_node_form_alter(&$form, $form_state) {
   // can not change the moderation state.
   if ($states = content_moderation_states_next($moderation_state, $user, $form['#node'])) {
     $states[$moderation_state] = t('@state (Current)', array('@state' => content_moderation_state_label($moderation_state)));
+
     $states_sorted = array();
-    foreach (array_keys(content_moderation_states()) as $state) {
-      if (array_key_exists($state, $states)) {
+    $node_type_settings = config_get('node.type.' . $form['type']['#value'], 'settings');
+    $allowed_states = $node_type_settings['allowed_states'];
+    foreach (array_keys(content_moderation_states()) as $key => $state) {
+      if (in_array($state, $allowed_states) && isset($states[$state])) {
         $states_sorted[$state] = $states[$state];
       }
     }
+
     $states = $states_sorted;
 
     $form['revision_information']['content_moderation_state_new'] = array(
       '#title' => t('Moderation state'),
       '#type' => 'select',
       '#options' => $states,
-      '#description' => t('Set the moderation state for this content.'),
       '#access' => $states ? TRUE : FALSE,
+      '#weight' => -1,
     );
 
     // If the user has access to the pre-set default state, make it the default
     // here. Otherwise, don't set a default in this case.
-    $default_state = config_get('node.type.' . $form['type']['#value'], 'settings.content_moderation_default_state');
+    $default_state = $node_type_settings['content_moderation_default_state'];
     if ($default_state && array_key_exists($default_state, $states)) {
       $form['revision_information']['content_moderation_state_new']['#default_value'] = $default_state;
     }
