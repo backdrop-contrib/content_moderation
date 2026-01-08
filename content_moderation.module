@@ -27,6 +27,11 @@ function content_moderation_config_info() {
     'label' => t('Content Moderation settings'),
     'group' => t('Configuration'),
   );
+  $prefixes['content_moderation.transitions'] = array(
+    'label' => t('Content Moderation Transitions'),
+    'group' => t('Configuration'),
+  );
+
   return $prefixes;
 }
 
