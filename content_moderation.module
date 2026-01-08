@@ -1829,6 +1829,7 @@ function content_moderation_get_moderation_links(Node $node, array $url_options 
       && $next_states = content_moderation_states_next($my_revision->state, NULL, $node)) {
     foreach ($next_states as $state => $label) {
       $link = array_merge($url_options, array(
+        'state' => $state,
         'title' => t('Change to %label', array('%label' => content_moderation_state_label($state))),
         'href' => "node/{$node->nid}/moderation/{$node->vid}/change-state/{$state}",
       ));
