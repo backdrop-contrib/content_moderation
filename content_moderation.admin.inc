@@ -423,8 +423,8 @@ function content_moderation_admin_check_role_form($form, &$form_state) {
  * Form submit handler for moderation role tests.
  */
 function content_moderation_admin_check_role_form_submit($form, &$form_state) {
-  $rid = $form_state['values']['role'];
-  $role = user_role_load($rid);
+  $name = $form_state['values']['role'];
+  $role = user_role_load($name);
 
   $types = array_filter($form_state['values']['types']);
 
@@ -433,17 +433,10 @@ function content_moderation_admin_check_role_form_submit($form, &$form_state) {
   $recommended_permissions = $recommended_permissions[$moderation_task];
 
   // Get a full list of this role's permissions.
-  $actual_permissions = user_role_permissions(array_filter(array(
-    $rid => TRUE,
-    BACKDROP_AUTHENTICATED_ROLE => ($rid != BACKDROP_ANONYMOUS_ROLE),
-  )));
+  $actual_permissions = $role->permissions;
 
-  // The results of user_role_permissions() are in a nested array:
-  // array(rid => array("permission name" => TRUE))
   // Check each for our recommended permissions.
-  foreach ($actual_permissions as $permissions) {
-    $recommended_permissions = array_diff($recommended_permissions, array_keys(array_filter($permissions)));
-  }
+  $recommended_permissions = array_diff($recommended_permissions, $actual_permissions);
 
   if (empty($recommended_permissions)) {
     // All of the recommended permissions were accounted for.
@@ -468,20 +461,19 @@ function content_moderation_admin_check_role_form_submit($form, &$form_state) {
     }
     // Provide links to node and moderation permissions.
     backdrop_set_message(t('View <a href="@node_permissions">node permissions</a> or <a href="@moderation_permissions">moderation permissions</a> for the @role role.', array(
-      '@node_permissions' => url('admin/people/permissions/' . $rid, array('fragment' => 'module-node')),
-      '@moderation_permissions' => url('admin/people/permissions/' . $rid, array('fragment' => 'module-content_moderation')),
+      '@node_permissions' => url('admin/config/people/permissions/' . $role->name, array('fragment' => 'module-node')),
+      '@moderation_permissions' => url('admin/config/people/permissions/' . $role->name, array('fragment' => 'module-content_moderation')),
       '@role' => $role->name,
     )), 'error');
 
     // Note that we don't cover all configurations.
     backdrop_set_message(t('The @role role may be a qualified @moderation_task regardless of these notices if it has liberal overall node and moderation permissions, like "Administer content" and "Bypass moderation restrictions".', array(
-      '@role' => $role->name,
-      '@moderation_task' => $moderation_task,
+      '@role' => $role->name, '@moderation_task' => $moderation_task,
     )), 'warning');
   }
 
   // Note that we don't cover all configurations.
-  backdrop_set_message(t('You must check manually that this role has the appropriate transition permissions for your workflow. <a href="@moderation_permissions_link">View moderation permissions for this role.</a>', array('@moderation_permissions_link' => url('admin/people/permissions/' . $rid, array('fragment' => 'module-content_moderation')))), 'warning');
+  backdrop_set_message(t('You must check manually that this role has the appropriate transition permissions for your workflow. <a href="@moderation_permissions_link">View moderation permissions for this role.</a>', array('@moderation_permissions_link' => url('admin/people/permissions/' . $role->name, array('fragment' => 'module-content_moderation')))), 'warning');
 
   // Repopulate the form with the submitted values.
   $form_state['rebuild'] = TRUE;
@@ -496,7 +488,6 @@ function content_moderation_recommended_permissions($types = array()) {
       // Node.
       "access content",
       "view own unpublished content",
-      "view revisions",
 
       // Content moderation.
       "view moderation messages",
@@ -549,8 +540,11 @@ function content_moderation_recommended_permissions($types = array()) {
   foreach ($types as $type) {
     $permissions['author'][] = "create $type content";
     $permissions['author'][] = "edit own $type content";
+
     $permissions['editor'][] = "edit any $type content";
+
     $permissions['moderator'][] = "edit any $type content";
+
     $permissions['publisher'][] = "edit any $type content";
   }
 
