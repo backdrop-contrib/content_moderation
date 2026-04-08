@@ -1964,7 +1964,7 @@ function content_moderation_moderate_form_submit($form, &$form_state) {
  *   A node object or NULL. The current menu object will be used if it is a node
  *   and this variable was not set.
  */
-function content_moderation_messages($context, Node $node = NULL) {
+function content_moderation_messages($context, ?Node $node = NULL) {
   global $user;
   static $content_moderation_messages_set;
 
@@ -2237,14 +2237,15 @@ function content_moderation_content_moderation_transition($node, $previous_state
 }
 
 /**
- * Implements hook_action_info().
+ * Implements hook_vboaction_info().
  */
-function content_moderation_action_info() {
+function content_moderation_vboaction_info() {
   $info = array();
   $info['content_moderation_set_state_action'] = array(
     'type' => 'node',
     'label' => t('Set moderation state'),
     'configurable' => TRUE,
+    'vbo' => TRUE,
   );
 
   return $info;
