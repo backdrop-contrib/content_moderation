@@ -1450,6 +1450,7 @@ function content_moderation_states() {
   if (!isset($states)) {
     $config = config('content_moderation.states');
     $states = $config->getData();
+    backdrop_sort($states, array('weight' => SORT_NUMERIC));
   }
 
   return $states;
