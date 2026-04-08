@@ -468,8 +468,8 @@ function content_moderation_admin_check_role_form_submit($form, &$form_state) {
     }
     // Provide links to node and moderation permissions.
     backdrop_set_message(t('View <a href="@node_permissions">node permissions</a> or <a href="@moderation_permissions">moderation permissions</a> for the @role role.', array(
-      '@node_permissions' => url('admin/people/permissions/' . $rid, array('fragment' => 'module-node')),
-      '@moderation_permissions' => url('admin/people/permissions/' . $rid, array('fragment' => 'module-content_moderation')),
+      '@node_permissions' => url('admin/config/people/permissions/' . $rid, array('fragment' => 'module-node')),
+      '@moderation_permissions' => url('admin/config/people/permissions/' . $rid, array('fragment' => 'module-content_moderation')),
       '@role' => $role->name,
     )), 'error');
 
@@ -481,7 +481,7 @@ function content_moderation_admin_check_role_form_submit($form, &$form_state) {
   }
 
   // Note that we don't cover all configurations.
-  backdrop_set_message(t('You must check manually that this role has the appropriate transition permissions for your workflow. <a href="@moderation_permissions_link">View moderation permissions for this role.</a>', array('@moderation_permissions_link' => url('admin/people/permissions/' . $rid, array('fragment' => 'module-content_moderation')))), 'warning');
+  backdrop_set_message(t('You must check manually that this role has the appropriate transition permissions for your workflow. <a href="@moderation_permissions_link">View moderation permissions for this role.</a>', array('@moderation_permissions_link' => url('admin/config/people/permissions/' . $rid, array('fragment' => 'module-content_moderation')))), 'warning');
 
   // Repopulate the form with the submitted values.
   $form_state['rebuild'] = TRUE;
