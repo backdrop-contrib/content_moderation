@@ -1723,16 +1723,18 @@ function content_moderation_states_next($current_state, $account, Node $node) {
   else {
     $config_transitions = config('content_moderation.transitions');
     $transitions = $config_transitions->getData();
+    $to_state = '';
     foreach ($transitions as $t) {
       if ($t['from_name'] == $current_state) {
-        $transition = $t;
+        $to_state = $t['to_name'];
       }
     }
     $config_states = config('content_moderation.states');
-    $states = $config_states->getData();
-    foreach ($states as $s) {
-      if ($s['name'] != $transition['to_name']) {
-        unset($states[$s['name']]);
+    $states_data = $config_states->getData();
+    $states = array();
+    foreach ($states_data as $s) {
+      if ($s['name'] == $to_state) {
+        $states[$s['name']] = $s['label'];
       }
     }
 
