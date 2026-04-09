@@ -15,7 +15,7 @@ function content_moderation_autoload_info() {
     'content_moderation_handler_filter_state' => 'includes/content_moderation_handler_filter_state.inc',
     'content_moderation_handler_filter_moderated_type' => 'includes/content_moderation_handler_filter_moderated_type.inc',
     'content_moderation_handler_filter_user_can_moderate' => 'includes/content_moderation_handler_filter_user_can_moderate.inc',
-    // 'ContentModerationMigrateDestinationHandler' => 'content_moderation.migrate.inc',
+    'ContentModerationDraftTracker' => 'includes/ContentModerationDraftTracker.inc',
   );
 }
 
@@ -166,6 +166,17 @@ function content_moderation_menu() {
 
     $items['node/%node/moderation/diff/view'] += $diff_menu_items['node/%node/revisions/view'];
   }
+
+  $items['admin/config/content/moderation/settings'] = array(
+    'title' => 'Settings',
+    'description' => 'Manage content moderation settings.',
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'backdrop_get_form',
+    'page arguments' => array('content_moderation_settings_form'),
+    'access arguments' => array('administer content moderation'),
+    'file' => 'content_moderation.admin.inc',
+    'weight' => 11,
+  );
 
   return $items;
 }
@@ -477,6 +488,11 @@ function content_moderation_permission() {
       }
     }
   }
+
+  $permissions['administer content moderation'] = array(
+    'title' => t('Administer content moderation'),
+  );
+
   return $permissions;
 }
 
@@ -628,7 +644,6 @@ function _content_moderation_moderate_access(Node $node, $state) {
  *   TRUE or FALSE.
  */
 function _content_moderation_access_current_draft(Node $node) {
-
   // This tab should only appear for nodes under moderation.
   if (!content_moderation_node_moderated($node)) {
     return FALSE;
@@ -674,7 +689,15 @@ function content_moderation_help($path, $arg) {
  * Implements hook_views_api().
  */
 function content_moderation_views_api() {
-  return array('api' => 2.0);
+  return array('api' => 3);
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function content_moderation_module_implements_alter(&$implementations) {
+  module_load_include('inc', 'content_moderation', 'content_moderation.draft');
+  content_moderation_rearrange_module_registry($implementations);
 }
 
 /**
@@ -704,16 +727,42 @@ function content_moderation_entity_presave($entity, $entity_type) {
 
   // If we are unpublishing a node, do not force revision.
   if (!$entity->status) {
-    // @todo do we have to set it as the active revision or not?
+    // @todo do we have to set it as the current revision or not?
     $entity->is_draft_revision = FALSE;
   }
 
-  // Inform drafty if this is a new revision, if it has not already been
+  // Inform if this is a new revision, if it has not already been
   // marked as such.
   elseif (!isset($entity->is_draft_revision) && !$published) {
     $entity->is_draft_revision = TRUE;
   }
 
+  module_load_include('inc', 'content_moderation', 'content_moderation.draft');
+  content_moderation_set_revision_to_publish($entity);
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function content_moderation_entity_update($entity, $type) {
+  module_load_include('inc', 'content_moderation', 'content_moderation.draft');
+  content_moderation_restore_published_revision();
+}
+
+/**
+ * Implements hook_entity_insert().
+ */
+function content_moderation_entity_insert($entity, $type) {
+  module_load_include('inc', 'content_moderation', 'content_moderation.draft');
+  content_moderation_reduce_recursion_level();
+}
+
+/**
+ * Implements hook_field_attach_load().
+ */
+function content_moderation_field_attach_load($entity_type, $entities, $age, $options) {
+  module_load_include('inc', 'content_moderation', 'content_moderation.draft');
+  content_moderation_get_revision_requested($entities, $age);
 }
 
 /**
@@ -740,7 +789,7 @@ function content_moderation_set_node_state(Node $node) {
   }
   if (!isset($node->content_moderation_state_new)) {
     $default_state = config_get('node.type.' . $node->type, 'settings.content_moderation_default_state');
-    // Moderating the default revision. Capture the proper state from drafty.
+    // Moderating the default revision. (Capture the proper state from draft integration.)
     if (!empty($node->default_revision) && $node->status) {
       $node->content_moderation_state_new = content_moderation_state_published();
     }
@@ -800,8 +849,8 @@ function content_moderation_save(Node $node) {
   $current_draft = &backdrop_static(__FUNCTION__, 0);
   global $user;
 
-  // Don't proceed if moderation is not enabled on this content or if we
-  // are saving the published version from drafty.
+  // Don't proceed if moderation is not enabled on this content (or if we are
+  // saving the published version from drafty).
   if (!content_moderation_node_moderated($node)) {
     return;
   }
@@ -816,6 +865,8 @@ function content_moderation_save(Node $node) {
   $node->is_current = FALSE;
   if (empty($node->default_revision)) {
     $node->is_current = TRUE;
+    // @todo should we set core's setting too?
+    // $node->setIsActiveRevision();
   }
 
   // Build a history record.
@@ -1151,6 +1202,7 @@ function content_moderation_state_none() {
  * @return bool
  */
 function content_moderation_node_type_moderated($type) {
+  // Is this content in moderation?
   return (bool) config_get('node.type.' . $type, 'settings.moderation_enabled');
 }
 
@@ -1788,7 +1840,7 @@ function content_moderation_moderate(Node $node, $state) {
   // Set the state property for saving.
   $node->content_moderation_state_new = $state;
 
-  // Save the node and let drafty handle it.
+  // Save the node.
   node_save($node);
 }
 
@@ -2308,13 +2360,6 @@ function content_moderation_set_state_action(Node $node, $context) {
 }
 
 /**
- * Implements hook_migrate_api().
- */
-function content_moderation_migrate_api() {
-  return array('api' => 2);
-}
-
-/**
  * Wrapper for user_access to admin content_moderation.
  */
 function content_moderation_transition_access($op, $profile = NULL, $account = NULL) {
@@ -2367,4 +2412,14 @@ function content_moderation_node_export_node_import_alter(&$node, $original_node
     return;
   }
   $node->revision = 1;
+}
+
+/**
+ * Implements hook_cron_queue_info().
+ */
+function content_moderation_cron_queue_info() {
+  $queues = array();
+  $queues += content_moderation_revision_delete_cron_queue();
+
+  return $queues;
 }

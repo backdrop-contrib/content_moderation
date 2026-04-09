@@ -197,3 +197,16 @@ function content_moderation_update_1003() {
     db_rename_table($table, $new_name);
   }
 }
+
+/**
+ * Convert drafty settings to content moderation.
+ */
+function content_moderation_update_1004() {
+  $config = config('content_moderation.settings');
+  $config->set('delete_old_revisions', update_variable_get('drafty_delete_old_revisions', FALSE));
+  $config->set('delete_with_cron', update_variable_get('drafty_delete_with_cron', FALSE));
+  $config->save();
+
+  update_variable_del('drafty_delete_old_revisions');
+  update_variable_del('drafty_delete_with_cron');
+}

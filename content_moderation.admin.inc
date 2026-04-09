@@ -556,3 +556,34 @@ function content_moderation_recommended_permissions($types = array()) {
 
   return $permissions;
 }
+
+/**
+ * Content moderation settings form.
+ */
+function content_moderation_settings_form($form, &$form_state) {
+  $config = config('content_moderation.settings');
+  $form['#config'] = 'content_moderation.settings';
+  $form['revision_cleanup'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Drafts settings'),
+  );
+
+  $form['revision_cleanup']['delete_old_revisions'] = array(
+    '#title' => t('Enable deleting redundant revisions'),
+    '#type' => 'checkbox',
+    '#default_value' => $config->get('delete_old_revisions', FALSE),
+    '#description' => t('Redundant older revisions (those that are marked published->published but are not current) will be deleted when a new revision is saved.'),
+  );
+
+  $form['revision_cleanup']['delete_with_cron'] = array(
+    '#title' => t('Delete redundant revisions on cron'),
+    '#type' => 'checkbox',
+    '#default_value' => $config->get('delete_with_cron', TRUE),
+    '#description' => t('Defer deletion of redundant revisions to when cron runs.'),
+    '#states' => array(
+      'visible' => array(':input[name="delete_old_revisions"]' => array('checked' => TRUE)),
+    ),
+  );
+
+  return system_settings_form($form);
+}
