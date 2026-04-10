@@ -148,6 +148,11 @@ function content_moderation_node_history_view(Node $node) {
     // granting access to the revision operations (view, update/revert, delete).
     $node_revision = clone $node;
     $node_revision->vid = $revision->vid;
+    if ($revision->vid != $node->content_moderation['current']->vid) {
+      // It's not the active revision so need to update it. There's no core
+      // method for this so update the public parameter manually.
+      $node_revision->is_active_revision = FALSE;
+    }
     $node_revision->content_moderation['my_revision'] = $revision;
 
     // View operation.

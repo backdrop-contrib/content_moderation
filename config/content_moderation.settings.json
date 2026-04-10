@@ -1,0 +1,5 @@
+{
+    "_config_name": "content_moderation.settings",
+    "delete_old_revisions": false,
+    "delete_with_cron": true
+}

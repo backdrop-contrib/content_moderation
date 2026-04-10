@@ -28,6 +28,7 @@ class ContentModerationTestCase extends BackdropWebTestCase {
     $config_node_type = config('node.type.' . $this->content_type);
     $config_node_type->set('settings.moderation_enabled', 1);
     $config_node_type->set('settings.revision_enabled', 1);
+    $config_node_type->set('settings.revision_default', 1);
     $config_node_type->save();
 
     // Create and login user.
