@@ -1051,9 +1051,11 @@ function content_moderation_form_node_form_alter(&$form, $form_state) {
   // Set a moderation state even if there is not one defined.
   if (isset($form['#node']->content_moderation['current']->state)) {
     $moderation_state = $form['#node']->content_moderation['current']->state;
+    $current_label = t('@state (Current)', array('@state' => content_moderation_state_label($moderation_state)));
   }
   else {
     $moderation_state = content_moderation_state_none();
+    $current_label = content_moderation_state_label($moderation_state);
   }
 
   // Store the current moderation state.
@@ -1071,7 +1073,7 @@ function content_moderation_form_node_form_alter(&$form, $form_state) {
   // Get all the states *this* user can access. If there aren't any, this user
   // can not change the moderation state.
   if ($states = content_moderation_states_next($moderation_state, $user, $form['#node'])) {
-    $states[$moderation_state] = t('@state (Current)', array('@state' => content_moderation_state_label($moderation_state)));
+    $states[$moderation_state] = $current_label;
     $states_sorted = array();
     foreach (array_keys(content_moderation_states()) as $state) {
       if (array_key_exists($state, $states)) {
