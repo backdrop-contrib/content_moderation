@@ -30,7 +30,7 @@ function content_moderation_admin_states_form($form, &$form_state) {
       '#type' => 'textfield',
       '#default_value' => $state['label'],
       '#maxlength' => 255,
-      '#size' => 30,
+      '#size' => 27,
     );
     $form['states'][$state['name']]['machine_name'] = array(
       '#markup' => check_plain($state['name']),
